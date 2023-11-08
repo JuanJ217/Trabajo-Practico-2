@@ -1,4 +1,2 @@
-print('Iniciando el TP')
-print('upaa')
-print("hola")
-print('como anda la banda')
+print('nuevo comienzo')
+print("prueba definitiva")
