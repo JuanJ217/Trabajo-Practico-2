@@ -34,6 +34,5 @@ def main():
     lista_de_snacks:list[str]=[]
     listar_snacks(obtener_snacks(),lista_de_snacks)
     ventana_de_reservas(lista_de_snacks)
-    print(lista_de_snacks)
 
 main()
