@@ -32,14 +32,17 @@ def cancelar_compra_snacks(contador_de_snacks, ventana, cantidad_visible)->None:
 
 #boletos = {'disponibles': x, 'totales': y, 'adquiridos': y-x, 'comprando':0}m
 def aumentar_boletos(boletos, comprar_boleto, entrada)->None:
-    if boletos['adquiridos'] < boletos['disponibles']:
-        comprar_boleto[boletos]+=1
-        entrada.config(text=f'f{comprar_boleto[boletos]}')
+    for cantidad in comprar_boleto:
+        if comprar_boleto[cantidad] < boletos['disponibles']:
+            comprar_boleto[cantidad]+=1
+            entrada.config(text=f'{comprar_boleto[cantidad]}')
 
 
-def disminuir_boletos(boletos, comprar_boletos, entrada)->None:
-    if comprar_boletos['cantidad']>0:
-        comprar_boletos['cantidad']-=1
+def disminuir_boletos(comprar_boletos, entrada)->None:
+    for cantidad in comprar_boletos:
+        if comprar_boletos[cantidad]>0:
+            comprar_boletos[cantidad]-=1
+            entrada.config(text=f'{comprar_boletos[cantidad]}')
         
 
 def cerrar_ventana(ventana)->None:
@@ -57,7 +60,7 @@ def disminuir_snacks(snack, contador_de_snacks, cantidad_visible)->None:
         cantidad_visible.config(text=f'{snack} ({contador_de_snacks[snack]})')
 
 
-def ventana_de_reservas(contador_de_snacks:dict, informacion_snacks, boletos:dict)->None:
+def ventana_de_reservas(contador_de_snacks:dict, informacion_snacks, boletos:dict, comprar_boleto:dict)->None:
 
     ventana = Tk()
     ventana.geometry('300x150')
@@ -79,10 +82,10 @@ def ventana_de_reservas(contador_de_snacks:dict, informacion_snacks, boletos:dic
     terminar_compra.pack()
     terminar_compra.place(x=150, y=70)
 
-    restar_cantidad = Button(ventana, text='- 1')
+    restar_cantidad = Button(ventana, text='- 1', command=lambda: disminuir_boletos(comprar_boleto, entrada))
     restar_cantidad.pack()
 
-    sumar_cantidad = Button(ventana, text='+1')
+    sumar_cantidad = Button(ventana, text='+1', command=lambda: aumentar_boletos(boletos, comprar_boleto, entrada))
     sumar_cantidad.pack()
     sumar_cantidad.place(x=160, y=21)
 
@@ -143,7 +146,7 @@ def main():
     informacion_snacks:dict = obtener_snacks(snacks)
     contador_de_snacks:dict={}
     cantidad_de_snacks(informacion_snacks, contador_de_snacks)
-    ventana_de_reservas(contador_de_snacks, informacion_snacks, boletos)
+    ventana_de_reservas(contador_de_snacks, informacion_snacks, boletos, comprar_boleto)
     print(contador_de_snacks)
 
 main()
