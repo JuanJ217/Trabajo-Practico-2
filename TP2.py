@@ -1,3 +1,190 @@
+
+from tkinter import Tk, Label, Button , Frame , Entry, Toplevel ,PhotoImage, Canvas,Scrollbar,messagebox
+import tkinter as tk
+from PIL import ImageTk, Image
+import base64
+import requests
+
+#---------------------------------------------------API_SECUNDARIA-------------------------------------------------------------------------------#
+
+
+def api_ventana_secundaria(id_principal):
+
+    guardar: list = []
+
+    url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + id_principal
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+    response1 = requests.get(url, headers=headers)
+
+    if response1.status_code == 200:
+        x = response1.json() #diccionario
+
+    informacion = list(x.keys())
+
+    for i in range(4,8):
+        variable = x[informacion[i]]
+        guardar.append(variable)
+
+    return id_principal, guardar
+
+#------------------------------------------------------------------PANTALLA---------------------------------------------------------------------#
+def ventana2(dict_menu : dict , ventana1) -> Toplevel:
+
+    ventana1.withdraw()
+    id_principal = dict_menu["id"]
+    id, guardar = api_ventana_secundaria(id_principal)
+
+    ventana_secundaria = Toplevel()
+    ventana_secundaria.title("ventana secundaria")
+    ventana_secundaria.geometry("1350x700")
+    ventana_secundaria.config(background="black")
+
+    #llamada a las funciones de la pantalla secundaria/pantalla 2 
+   
+    boton_menu, boton_reserva = botones(ventana_secundaria,ventana1)
+    s_sala = sala(ventana_secundaria, id)
+    s_sinopsis, t_sinopsis = sinopsis(ventana_secundaria, guardar)
+    g_genero, t_genero = genero(ventana_secundaria, guardar)
+    a_actores, t_actores = actores(ventana_secundaria, guardar)
+    d_duracion, t_duracion = duracion(ventana_secundaria,guardar)
+    ventana_secundaria.mainloop()
+
+    return ventana_secundaria
+
+#---------------------------------------------------VOLVER AL MENU / RESEVAR--------------------------------------------------------------------#
+def volver_al_menu(ventana_secundaria,ventana1):
+
+    ventana1.iconify()
+    ventana1.deiconify()
+    ventana_secundaria.destroy()
+
+
+def ir_a_reservar(ventana_secundaria):
+    
+    ventana3 = Toplevel()
+    ventana3.title("reservar")
+    ventana3.geometry("1000x600")
+    ventana3.config(background="black")
+#------------------------------------------------------------------BOTONES-----------------------------------------------------------------------#
+
+def botones (ventana_secundaria,ventana1) -> tuple:
+
+    '''
+    BTN-VOLVER AL MENU
+        PRE CONDICION: el usuario clickea el boton
+        POST CONDICION: al clickear el boton se cerrara la ventana secundaria y se volvera a al menu
+
+    BTN-RESERVAR
+        PRE CONDICION: el usuario clickea el boton
+        POST CONDICION: al clickear el boton se abrira la ventana 3
+    '''
+    boton_volver_al_menu = Button(
+                                    ventana_secundaria,  text= "VOLVER AL MENU", 
+                                    background= "black",  fg="gold", 
+                                    width= 20,           height= 5, 
+                                    command= lambda: volver_al_menu(ventana_secundaria,ventana1)
+                                    )   
+    boton_volver_al_menu.place(relx=0.1, rely=0.1, anchor=tk.CENTER)
+
+    boton_reservar = Button(
+                            ventana_secundaria,  text= "RESERVAR", 
+                            background= "black",  fg="gold",  
+                            width= 20,          height= 5,
+                            command= lambda: ir_a_reservar(ventana_secundaria)  
+                            )
+    boton_reservar.place(relx=0.88, rely=0.9, anchor=tk.CENTER)
+
+    return boton_volver_al_menu, boton_reservar
+
+#------------------------------------------------------------------------SALA-------------------------------------------------------------------#
+def sala(ventana_secundaria, id) -> Label:
+
+    sala_proyectar = Label(
+                            ventana_secundaria,   text= "SALA  " + id,
+                            background= "black",  fg="red",    
+                            )
+    sala_proyectar.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
+
+    return sala_proyectar
+
+#------------------------------------------------------------------SINOPSIS---------------------------------------------------------------------#
+def sinopsis(ventana_secundaria, guardar) -> tuple: 
+
+    sinopsis = Label(
+                        ventana_secundaria, text= "SINOPSIS: ",
+                        background= "black", fg="red"  
+                        )
+    sinopsis.place(relx=0.2, rely=0.3, anchor=tk.CENTER)
+
+    texto_sinopsis = Label(
+                            ventana_secundaria,   text= guardar[0],
+                            background= "black",  fg="red",    
+                            wraplength= 700
+                            )
+    texto_sinopsis.place(relx=0.5, rely=0.42, anchor=tk.CENTER)
+
+    return sinopsis, texto_sinopsis
+#---------------------------------------------------------------------GENERO-------------------------------------------------------------------#
+
+def genero(ventana_secundaria, guardar) -> tuple:
+
+    genero = Label(
+                    ventana_secundaria,    text= "GENERO: ",
+                    background= "black",   fg="red"     
+                    )
+    genero.place(relx=0.2, rely=0.55, anchor=tk.CENTER)
+
+    texto_genero = Label(
+                    ventana_secundaria,    text= guardar[1],
+                    background= "black",   fg="red"    
+                    )  
+    texto_genero.place(relx=0.25, rely=0.55, anchor=tk.CENTER)
+    
+    return genero, texto_genero
+#----------------------------------------------------------------------ACTORES-------------------------------------------------------------------#
+
+def actores(ventana_secundaria, guardar) -> tuple:
+
+    actores = Label(
+                    ventana_secundaria,     text= "ACTORES: ",
+                    background= "black",    fg="red"      
+                    )
+    actores.place(relx=0.2, rely=0.66, anchor=tk.CENTER)
+
+    texto_actores = Label(
+                    ventana_secundaria,     text= guardar[3],
+                    background= "black",    fg="red"    
+                    )
+    texto_actores.place(relx=0.35, rely=0.66, anchor=tk.CENTER)
+
+    return actores, texto_actores
+
+#---------------------------------------------------------------------DURACION-------------------------------------------------------------------#
+def duracion(ventana_secundaria, guardar) -> tuple:
+
+    duracion = Label(
+                        ventana_secundaria,  text= "DURACION: ",
+                        background= "black", fg="red" 
+                        )
+    duracion.place(relx=0.2, rely=0.6, anchor=tk.CENTER)
+
+    texto_duracion = Label(
+                        ventana_secundaria,  text= guardar[2],
+                        background= "black", fg="red"
+                        )
+    texto_duracion.place(relx=0.25, rely=0.6, anchor=tk.CENTER)
+
+    return duracion, texto_duracion
+
+#--------------------------------------------------------HAY ASIENTOS?--------------------------------------------------------------------------#
+def no_hay_lugar():
+
+        mensaje = messagebox.showinfo("Lo sentimos, no hay mas asientos disponibles para ver esta pelicula por favor vuelva al menu")
+#---------------------------------------------------------PARTE CRIS---------------------------------------------------------------------------#
+
+
 def boton_peliculas(sub_id : int,ventana):
 
     url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + str(sub_id)
