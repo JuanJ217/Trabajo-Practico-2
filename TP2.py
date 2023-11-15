@@ -1,4 +1,137 @@
+def boton_peliculas(sub_id : int,ventana):
+
+    url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + str(sub_id)
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+
+    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+
+    response__1 = requests.get(url, headers=headers)
+
+
+    if response__1.status_code == 200:
+        
+        archivo = response__1.json() #diccionario
+        id = archivo["id"]
+        nombre = archivo["name"]
+        diccionario : dict = {"name": nombre,"id": id , "cinema_id": 1,"location": "Caballito"}
+        ventana2(diccionario,ventana)
+    
+
+
+def lista_posters(sub_lista : str)->str:
+    lista_parcial : list = []
+    
+    url = "http://vps-3701198-x.dattaweb.com:4000/posters/" + str(sub_lista)
+            
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+
+    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+
+    response__1 = requests.get(url, headers=headers)
+
+
+    if response__1.status_code == 200:
+        datos = response__1.json() #diccionario
+                
+        for i in datos:
+            variable = datos[i]
+
+            return variable
+                    
+            
+    
+   
+    
+    
+
+def lista_peliculas(sub_lista : list)->list:
+    
+    url = "http://vps-3701198-x.dattaweb.com:4000/cinemas/1/movies"
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+
+    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+
+    response__1 = requests.get(url, headers=headers)
+
+
+    if response__1.status_code == 200:
+        datos = response__1.json() #diccionario
+        
+        for i in datos:
+            variable = i["has_movies"]
+            sub_lista += variable
+
+    return sub_lista
+
+
+
+
+
+
+def buscar(cajon, ventana,sub_lista_de_peliculas):
+    datos = cajon.get().upper()
+    
+    lista_de_peliculas : list = []
+    lista_completa : list = []
+    
+    for vueltas in sub_lista_de_peliculas:
+        url = "http://vps-3701198-x.dattaweb.com:4000/movies/{0}".format(vueltas)
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+
+        headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+
+        response__1 = requests.get(url, headers=headers)
+
+
+        if response__1.status_code == 200:
+            archivo = response__1.json() #diccionario
+            lista_de_peliculas.append(archivo["name"])
+            lista_completa.append(archivo)
+            
+
+    
+
+    if datos in lista_de_peliculas:
+
+        for sub_vueltas in lista_completa:
+
+            if datos == sub_vueltas["name"]:
+
+                id = sub_vueltas["id"]
+                diccionario : dict = {"name" : datos ,"id" : id , "cinema_id": 1,"location": "Caballito"}
+
+                print(diccionario)
+                ventana2(diccionario,ventana)
+
+       
+    else:
+        sub_ventana = Toplevel()
+        sub_ventana.geometry("300x200")
+        sub_ventana.title("ERROR !!!")
+
+        sub_frame = Frame(sub_ventana,bg="black")
+        sub_frame.pack(expand=True,fill="both")
+
+        
+        mensaje = Label(sub_frame,text="NO SE ENCONTRO LA PELICULA. INTENTE DE NUEVO")
+        mensaje.config(bg="black",fg="red")
+        mensaje.pack(ipadx=50,ipady=50)
+
+        sub_boton = Button(sub_frame,text = "OK",command=sub_ventana.destroy)
+        sub_boton.config(bg="black",fg="red")
+        sub_boton.pack(ipadx=25,ipady=10)
+
+
+
+
 #ventana
+
+
+
 def ventana1():
     ventana = Tk()
     ventana.geometry("1600x720")
