@@ -1,8 +1,8 @@
 import requests
-from tkinter import Entry, Button, Label, Tk, Frame
+from tkinter import Entry, Button, Label, Tk, Frame, Toplevel
 
 snacks:str='snacks'
-movies:str='movies'
+movies:str='cinemas'
 
 def obtener_snacks(objetivo)->dict:
     url = "http://vps-3701198-x.dattaweb.com:4000/" + objetivo
@@ -30,6 +30,12 @@ def cancelar_compra_snacks(contador_de_snacks, ventana, cantidad_visible)->None:
     ventana.destroy()
 
 
+def cancelar_compra_boletos(comprar_boleto, ventana, entrada):
+    for cantidad in comprar_boleto:
+        comprar_boleto[cantidad]=0
+        entrada.config(text=f'Cantidad de entradas ({comprar_boleto[cantidad]})')
+    ventana.destroy()
+    
 #boletos = {'disponibles': x, 'totales': y, 'adquiridos': y-x, 'comprando':0}m
 def aumentar_boletos(boletos, comprar_boleto, entrada)->None:
     for cantidad in comprar_boleto:
@@ -61,79 +67,85 @@ def disminuir_snacks(snack, contador_de_snacks, cantidad_visible)->None:
 
 
 def ventana_de_reservas(contador_de_snacks:dict, informacion_snacks, boletos:dict, comprar_boleto:dict)->None:
+    cantidad_visible = None
 
-    ventana = Tk()
-    ventana.geometry('300x150')
-    ventana.title('')
-    ventana.resizable(width=False, height=False)
+    def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict)->None:
+        nonlocal ventana4, cantidad_visible
+        ventana4 = Toplevel(ventana3)
+        ventana4.geometry('250x300')
+        ventana4.config(bg='black')
+        ventana4.resizable(width=False, height=False)
 
-    comprar_entradas = Label(ventana, text='SECCION DE RESERVAS')
+        encabezado = Label(ventana4, text='COMPRAR SNACKS')
+        encabezado.pack(side='top')
+        encabezado.config(fg='white', bg='black')
+
+        for snack in informacion_snacks:
+            posiciones = Frame(ventana4)
+            posiciones.pack(side='top', anchor='w')
+            posiciones.config(bg='black')
+
+            cantidad_visible = Label(posiciones, text=f'{snack} ({contador_de_snacks[snack]})')
+            sumar = Button(posiciones, text='- 1', command=lambda s=snack, c=cantidad_visible: disminuir_snacks(s, contador_de_snacks, c))
+            restar = Button(posiciones, text='+1', command=lambda s=snack, c=cantidad_visible: aumentar_snacks(s, contador_de_snacks, c))
+            precios = Label(posiciones, text=f'${informacion_snacks[snack]}')
+
+            cantidad_visible.pack(side='left', anchor='w')
+            cantidad_visible.config(width=15, fg='white', bg='black')
+            sumar.pack(side='left')
+            sumar.config(fg='white', bg='black')
+            restar.pack(side='left')
+            restar.config(fg='white', bg='black')
+            precios.pack(side='left')
+            precios.config(width=12, fg='white', bg='black')
+
+        aceptar = Button(ventana4, text='Aceptar', command=lambda: cerrar_ventana(ventana4))
+        aceptar.pack()
+        aceptar.place(x=95, y=220)
+
+        cancelar = Button(ventana4, text='Cancelar compra', command=lambda: cancelar_compra_snacks(contador_de_snacks, ventana4, cantidad_visible))
+        cancelar.pack()
+        cancelar.place(x=70, y=250)
+    
+    def cerrar_ventanas():
+        nonlocal ventana4, cantidad_visible
+        if ventana4:
+            cancelar_compra_snacks(contador_de_snacks, ventana4, cantidad_visible)
+        cancelar_compra_boletos(comprar_boleto, ventana3, entrada)
+
+    ventana4 = None
+    ventana3 = Tk()
+    ventana3.geometry('300x150')
+    ventana3.title('')
+    ventana3.resizable(width=False, height=False)
+
+    comprar_entradas = Label(ventana3, text='SECCION DE RESERVAS')
     comprar_entradas.pack()
 
-    entrada = Label(ventana, text=f'disponibles')
+    entrada = Label(ventana3, text=f'disponibles')
     entrada.pack()
     entrada.place(x=20, y=20)
 
-    opciones_snacks = Button(ventana, text='Añadir snacks', command=lambda: ventana_de_snacks(contador_de_snacks, informacion_snacks))
+    opciones_snacks = Button(ventana3, text='Añadir snacks', command=lambda: ventana_de_snacks(contador_de_snacks, informacion_snacks))
     opciones_snacks.pack()
     opciones_snacks.place(x=60, y=70)
 
-    terminar_compra = Button(ventana, text='Finalizar')
+    terminar_compra = Button(ventana3, text='Finalizar', command=lambda: cerrar_ventana(ventana3))
     terminar_compra.pack()
     terminar_compra.place(x=150, y=70)
 
-    restar_cantidad = Button(ventana, text='- 1', command=lambda: disminuir_boletos(comprar_boleto, entrada))
+    restar_cantidad = Button(ventana3, text='- 1', command=lambda: disminuir_boletos(comprar_boleto, entrada))
     restar_cantidad.pack()
 
-    sumar_cantidad = Button(ventana, text='+1', command=lambda: aumentar_boletos(boletos, comprar_boleto, entrada))
+    sumar_cantidad = Button(ventana3, text='+1', command=lambda: aumentar_boletos(boletos, comprar_boleto, entrada))
     sumar_cantidad.pack()
     sumar_cantidad.place(x=160, y=21)
 
-    cancelar = Button(ventana, text='Cancelar compra', command=lambda: cerrar_ventana(ventana))
+    cancelar = Button(ventana3, text='Cancelar compra', command=lambda: cerrar_ventanas())
     cancelar.pack()
-
-    ventana.mainloop()
-
-
-def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict)->None:
-
-    ventana3 = Tk()
-    ventana3.geometry('250x300')
-    ventana3.config(bg='black')
-    ventana3.resizable(width=False, height=False)
-
-    encabezado = Label(ventana3, text='COMPRAR SNACKS')
-    encabezado.pack(side='top')
-    encabezado.config(fg='white', bg='black')
-
-    for snack in informacion_snacks:
-        posiciones = Frame(ventana3)
-        posiciones.pack(side='top', anchor='w')
-        posiciones.config(bg='black')
-
-        cantidad_visible = Label(posiciones, text=f'{snack} ({contador_de_snacks[snack]})')
-        sumar = Button(posiciones, text='- 1', command=lambda s=snack, c=cantidad_visible: disminuir_snacks(s, contador_de_snacks, c))
-        restar = Button(posiciones, text='+1', command=lambda s=snack, c=cantidad_visible: aumentar_snacks(s, contador_de_snacks, c))
-        precios = Label(posiciones, text=f'${informacion_snacks[snack]}')
-
-        cantidad_visible.pack(side='left', anchor='w')
-        cantidad_visible.config(width=15, fg='white', bg='black')
-        sumar.pack(side='left')
-        sumar.config(fg='white', bg='black')
-        restar.pack(side='left')
-        restar.config(fg='white', bg='black')
-        precios.pack(side='left')
-        precios.config(width=12, fg='white', bg='black')
-
-    aceptar = Button(ventana3, text='Aceptar', command=lambda: cerrar_ventana(ventana3))
-    aceptar.pack()
-    aceptar.place(x=95, y=220)
-
-    cancelar = Button(ventana3, text='Cancelar compra', command=lambda: cancelar_compra_snacks(contador_de_snacks, ventana3, cantidad_visible))
-    cancelar.pack()
-    cancelar.place(x=70, y=250)
 
     ventana3.mainloop()
+
 
 
 def ventana_confirmar_compra()->None:
@@ -143,10 +155,12 @@ def ventana_confirmar_compra()->None:
 def main():
     boletos = {'disponibles': 5, 'totales': 10}
     comprar_boleto = {'cantidad': 0}
+    cine = obtener_snacks(movies)
+    print(cine)
     informacion_snacks:dict = obtener_snacks(snacks)
     contador_de_snacks:dict={}
     cantidad_de_snacks(informacion_snacks, contador_de_snacks)
     ventana_de_reservas(contador_de_snacks, informacion_snacks, boletos, comprar_boleto)
     print(contador_de_snacks)
-
+    print(comprar_boleto)
 main()
