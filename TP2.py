@@ -185,6 +185,8 @@ def no_hay_lugar():
 #---------------------------------------------------------PARTE CRIS---------------------------------------------------------------------------#
 
 
+#------------------------------------------------BOTON DE ACCESO A VENTANA 2 ---------------------------------------------------------------------#
+
 def boton_peliculas(sub_id : int,ventana):
 
     url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + str(sub_id)
@@ -204,10 +206,10 @@ def boton_peliculas(sub_id : int,ventana):
         diccionario : dict = {"name": nombre,"id": id , "cinema_id": 1,"location": "Caballito"}
         ventana2(diccionario,ventana)
     
-
+#------------------------------------------------POSTERS----------------------------------------------------------------------------#
 
 def lista_posters(sub_lista : str)->str:
-    lista_parcial : list = []
+    
     
     url = "http://vps-3701198-x.dattaweb.com:4000/posters/" + str(sub_lista)
             
@@ -220,6 +222,7 @@ def lista_posters(sub_lista : str)->str:
 
 
     if response__1.status_code == 200:
+
         datos = response__1.json() #diccionario
                 
         for i in datos:
@@ -231,7 +234,7 @@ def lista_posters(sub_lista : str)->str:
     
    
     
-    
+#-------------------------------------------- ID DE PELICULAS --------------------------------------------------------------------#
 
 def lista_peliculas(sub_lista : list)->list:
     
@@ -256,7 +259,7 @@ def lista_peliculas(sub_lista : list)->list:
 
 
 
-
+#-----------------------------------------------BUSCAR PELICULAS --------------------------------------------------------------------#
 
 def buscar(cajon, ventana,sub_lista_de_peliculas):
     datos = cajon.get().upper()
@@ -315,7 +318,7 @@ def buscar(cajon, ventana,sub_lista_de_peliculas):
 
 
 
-#ventana
+#-------------------------------------------------------VENTANA PRINCIPAL -----------------------------------------------------------------#
 
 
 
@@ -384,7 +387,7 @@ def ventana1():
 
 
 
-    lista_de_posters : list = lista_posters(listas_de_peliculas)
+    
 
     url = "http://vps-3701198-x.dattaweb.com:4000/cinemas/1/movies"
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
