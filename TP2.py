@@ -76,6 +76,19 @@ def disminuir_snacks(snack, contador_de_snacks, cantidad_visible)->None:
         cantidad_visible.config(text=f'{snack} ({contador_de_snacks[snack]})')
 
 
+def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible)->None:
+
+    aceptar = Button(ventana3, text='Aceptar', command=lambda: cerrar_ventana(ventana3))
+    aceptar.pack()
+    aceptar.place(x=95, y=220)
+    aceptar.config(fg='blue')
+
+    cancelar = Button(ventana3, text='Cancelar compra', command=lambda: reiniciar_snacks(contador_de_snacks, ventana3, cantidad_visible))
+    cancelar.pack()
+    cancelar.place(x=70, y=250)
+    cancelar.config(fg='red')
+    
+
 def botones_snacks(ventana3, informacion_snacks, contador_de_snacks)->None:
 
     for snack in informacion_snacks:
@@ -100,21 +113,7 @@ def botones_snacks(ventana3, informacion_snacks, contador_de_snacks)->None:
         precios.pack(side='left')
         precios.config(width=12, fg='white', bg='black')
 
-    botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible)
-
-    
-def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible)->None:
-
-    aceptar = Button(ventana3, text='Aceptar', command=lambda: cerrar_ventana(ventana3))
-    aceptar.pack()
-    aceptar.place(x=95, y=220)
-    aceptar.config(fg='blue')
-
-    cancelar = Button(ventana3, text='Cancelar compra', command=lambda: reiniciar_snacks(contador_de_snacks, ventana3, cantidad_visible))
-    cancelar.pack()
-    cancelar.place(x=70, y=250)
-    cancelar.config(fg='red')
-    
+    botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible)    
 
 
 def ventana_de_reservas(ventana2)->None:
