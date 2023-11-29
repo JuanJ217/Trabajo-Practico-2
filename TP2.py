@@ -58,11 +58,7 @@ def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, 
     botones_de_accion = Frame(ventana_final,bg='black')
     botones_de_accion.pack(side='top', anchor='center', pady=10)
     
-    boton_comprar = Button(
-                                botones_de_accion, text='PAGAR', 
-                                command=lambda: crear_qr(cantidad_entradas, dict_menu, ventana_final,
-                                                         ventana3, ventana_principal, contador_de_snacks)
-                            )
+    boton_comprar = Button(botones_de_accion, text='PAGAR', command=lambda: crear_qr(cantidad_entradas, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks))
     boton_comprar.pack(side='top', anchor='n', pady=10)
 
     boton_cancelar_compra = Button(
@@ -342,7 +338,7 @@ def mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibl
     mostrar_cant_asientos.pack()
 
 
-def textos_y_botones(ventana_reserva, contador_de_snacks:dict, informacion_snacks:dict, lista_final:list[int],
+def textos_y_botones(ventana_reserva, ventana_principal, contador_de_snacks:dict, informacion_snacks:dict, lista_final:list[int],
                      asientos_disponibles_en_la_sala:str, dict_menu:dict, ventana2)->None:
     
     validar_ingreso = (ventana_reserva.register(validar_texto), '%P')
@@ -393,7 +389,7 @@ def ventana_de_reservas(ventana2, dict_menu:dict, asientos_disponibles_en_la_sal
         ventana_reserva.config(bg='black')
 
         mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala)
-        textos_y_botones(ventana_reserva, contador_de_snacks, informacion_snacks, lista_final,
+        textos_y_botones(ventana_reserva, ventana_principal, contador_de_snacks, informacion_snacks, lista_final,
                          asientos_disponibles_en_la_sala, dict_menu, ventana2)
 
 #---------------------------------------------------------------OBTENCION_INFO_PELICULA-----------------------------------------------------------#
@@ -541,19 +537,19 @@ def no_hay_lugar():
 def saber_asientos_comprados()->dict:
     
     informacion_asientos_comprados:dict = {}
-    if path.exists(ruta_ingresos):
-        with open(ruta_ingresos, 'r') as archivo_ingesos:
-            for linea in archivo_ingesos:
-                datos = linea.strip('\n').split(', ')
-                cinema = datos[2]
-                pelicula = datos[1]
-                entradas_vendidas = int(datos[3])
-                if cinema not in informacion_asientos_comprados:
-                    informacion_asientos_comprados[cinema] = {}
-                if pelicula in informacion_asientos_comprados[cinema]:
-                    informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
-                else:
-                    informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
+
+    with open(ruta_ingresos, 'r') as archivo_ingesos:
+        for linea in archivo_ingesos:
+            datos = linea.strip('\n').split(', ')
+            cinema = datos[2]
+            pelicula = datos[1]
+            entradas_vendidas = int(datos[3])
+            if cinema not in informacion_asientos_comprados:
+                informacion_asientos_comprados[cinema] = {}
+            if pelicula in informacion_asientos_comprados[cinema]:
+                informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
+            else:
+                informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
 
     return informacion_asientos_comprados
 
@@ -646,7 +642,9 @@ def lista_posters(sub_lista : str)-> str:
     
 #--------------------------------------------------------------------ID_DE_PELICULAS--------------------------------------------------------------#
 
-def lista_peliculas(sub_lista : list, id : str)-> list:
+def lista_peliculas(id : str)-> list:
+
+    sub_lista : list = []
     
     url = "http://vps-3701198-x.dattaweb.com:4000/cinemas/{0}/movies".format(id)
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
@@ -810,7 +808,7 @@ def ventana_principal(numero_cine, nombre_cine, ventana_anterior):
     cajon = Entry(fram_1)
     cajon.grid(row=0, column=0, ipadx=100, ipady=5)
 
-    listas_de_peliculas: list = lista_peliculas([],numero_cine)
+    listas_de_peliculas: list = lista_peliculas(numero_cine)
 
     boton_busqueda = Button(
                              fram_1, text="BUSCAR",
@@ -874,8 +872,6 @@ def ventana0():
     frame.pack(expand=True, fill="both")
 
     cine_id,nombre_cine = cinemas()
-    print(cine_id)
-    print(nombre_cine)
     numero : int = 0
 
     for vueltas in range(len(cine_id)):
@@ -886,16 +882,7 @@ def ventana0():
     
 #----------------------------------------------------------------------APP_QR---------------------------------------------------------------------#
 #--------------------------------------------------------------CREAR_QR_GUARDAR_EN_PDF------------------------------------------------------------#
-
-def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks) -> None:
-
-    ruta_qr: str = path.join(getcwd(), 'QR')
-
-    if not path.exists(ruta_qr):
-        makedirs(ruta_qr)
-
-    archivos_en_qr: list[str] = listdir(ruta_qr)
-    cantidad_de_archivos: int = len(archivos_en_qr)
+def crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado, contador_de_snacks)->str:
 
     id_qr: str = 'QR_' + str(cantidad_de_archivos + 1)
     pelicula = dict_menu['name']
@@ -908,9 +895,35 @@ def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_princi
     for snacks in contador_de_snacks:
         if contador_de_snacks[snacks] > 0:
             snacks_comprados += f'{snacks}: {str(contador_de_snacks[snacks])}, '
-    
 
-    contenido_qr: str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
+    ontenido_qr:str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
+
+    return id_qr, ontenido_qr
+
+
+def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks) -> None:
+
+    ruta_qr: str = path.join(getcwd(), 'QR')
+
+    if not path.exists(ruta_qr):
+        makedirs(ruta_qr)
+
+    archivos_en_qr: list[str] = listdir(ruta_qr)
+    cantidad_de_archivos: int = len(archivos_en_qr)    
+
+    id_qr: str = 'QR_' + str(cantidad_de_archivos + 1)
+    pelicula = dict_menu['name']
+    if letra_español in pelicula:
+        pelicula = pelicula.replace(letra_español, conversion_de_letra)
+    cine = dict_menu['location']
+    entradas: str = boleto_comprado
+    tiempo: str = fecha_y_hora()
+    snacks_comprados:str = ''
+    for snacks in contador_de_snacks:
+        if contador_de_snacks[snacks] > 0:
+            snacks_comprados += f'{snacks}: {str(contador_de_snacks[snacks])}, '
+
+    contenido_qr:str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
 
     if ', ]' in contenido_qr:
         contenido_qr = contenido_qr.replace(', ]', ']')
@@ -935,18 +948,12 @@ def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_princi
     # HACER FUNCION: reestablecer_boletos_y_snacks()
 
     ventana_final.destroy()
-    # LEER : tuve que comentar la linea de abajo porque me aparecia error (una tipo function no se podia usar deiconify)
     ventana_principal.deiconify()
 
-
-'''def restablecer_valores_snacks(contador_de_snacks:dict)->None:
-    for snack in contador_de_snacks:
-        contador_de_snacks[snack] = 0'''
 #-------------------------------------------------------------FECHA_Y_HORA_QR---------------------------------------------------------------------#
 
 def fecha_y_hora() -> str:
 
-    from time import localtime, strftime
     estructura = localtime()
 
     return strftime('%Y-%m-%d %H:%M:%S', estructura)
@@ -972,24 +979,27 @@ def extraer_imagen_desde_pdf(archivo_pdf, ruta_imagen_png) -> bool:
 
 #---------------------------------------------------------------DECODIFICANDO_QR_DESDE_IMAGEN-----------------------------------------------------#
 
-def decodificar_qr_desde_imagen(ruta_imagen) -> str:
+def decodificar_qr_desde_imagen(ruta_imagen):
     #Se modifico porque al usar decode (pyzbar) tiraba error porque no reconocia la libreria
     #Lee la imagen 
     imagen = imread(ruta_imagen)
     #Pasa la imagen a escala de grises para detectar mejor
     imagen_gris = cvtColor(imagen, COLOR_BGR2GRAY)
     detector = QRCodeDetector()
-    #Decodifica el qr y devuelve una tupla
+    #Decodifica el qr
     datos_qr = detector.detectAndDecode(imagen_gris)
 
-    #devuelve el valor del qr en string
-    return datos_qr[0]
+    if datos_qr:
+        # Devuelve el valor del qr
+        return datos_qr[0]
+    else:
+        return None
 
-#-----------------------------------------------------------AGREGAR_DATOS_QR_EN_TXT-----------------------------------------------------------#
+#-----------------------------------------------------------AGREGAR/VERIFICAR_QR_EN_TXT-----------------------------------------------------------#
 
 def agregar_a_ingresos_txt(codigo_qr):
-    # Agrega datos del QR en ingresos.txt
-    with open(ruta_ingresos, "a") as archivo_ingresos:
+    # Verificar si el código QR ya está en ingresos.txt
+    with open("ingresos.txt", "a") as archivo_ingresos:
         archivo_ingresos.write(f'{codigo_qr}\n')
 
 #--------------------------------------------------------------------QR_PDF-----------------------------------------------------------------------#
@@ -1010,7 +1020,7 @@ def generar_ventana_emergente(mensaje : int) -> None:
     boton_error.config(bg="black", fg="red")
     boton_error.pack(ipadx=25, ipady=10)
 
-def codigo(cajon, carpeta_pdf):
+def codigo(cajon, ventana, carpeta_pdf):
     dato_entrada = cajon.get().upper()
     #print(f"Ingresaste: {dato_entrada}")
 
@@ -1036,7 +1046,7 @@ def codigo(cajon, carpeta_pdf):
                 archivo_lectura.seek(0)
                 contenido_actual = archivo_lectura.read()
 
-            if len(codigo_qr) != 0:
+            if codigo_qr is not None:
                 #print(f"Código QR extraído: {codigo_qr}")
                 
                 # Entra si no hay una linea igual
@@ -1068,7 +1078,7 @@ def codigo(cajon, carpeta_pdf):
 
 #------------------------------------------------------------------LECTURA_QR---------------------------------------------------------------------#
 
-def lector_qr() -> None:
+def lector_qr():
     #abre la camara
     camara = VideoCapture(0)
     ciclo = True
@@ -1108,12 +1118,12 @@ def lector_qr() -> None:
     destroyAllWindows()
 
     
-    with open(ruta_ingresos, "a+") as archivo_lectura:
+    with open("ingresos.txt", "a+") as archivo_lectura:
         archivo_lectura.seek(0)
         contenido_actual = archivo_lectura.read()
 
     if dato_qr not in contenido_actual:
-        with open(ruta_ingresos, "a") as archivo:
+        with open("ingresos.txt", "a") as archivo:
             archivo.write(dato_qr + '\n')
         mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
         generar_ventana_emergente(mensaje)
@@ -1141,11 +1151,11 @@ def menu_QR():
     cajon = Entry(frame_principal)
     cajon.pack(pady=20, ipadx=50)
 
-    boton_1 = Button(frame_principal, text="VALIDAR", command=lambda: codigo(cajon, "QR"))
+    boton_1 = Button(frame_principal, text="LEER QR POR TEXTO", command=lambda: codigo(cajon, ventana, "QR"))
     boton_1.config(bg="black", fg="red")
     boton_1.pack(pady=20, ipadx=50, ipady=5)
 
-    boton_2 = Button(frame_principal, text="ENCENDER QR", command= lector_qr)
+    boton_2 = Button(frame_principal, text="LEER QR", command=lambda: lector_qr(ventana))
     boton_2.config(bg="black", fg="red")
     boton_2.pack(pady=20, ipadx=50, ipady=5)
 
