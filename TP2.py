@@ -541,19 +541,19 @@ def no_hay_lugar():
 def saber_asientos_comprados()->dict:
     
     informacion_asientos_comprados:dict = {}
-
-    with open(ruta_ingresos, 'r') as archivo_ingesos:
-        for linea in archivo_ingesos:
-            datos = linea.strip('\n').split(', ')
-            cinema = datos[2]
-            pelicula = datos[1]
-            entradas_vendidas = int(datos[3])
-            if cinema not in informacion_asientos_comprados:
-                informacion_asientos_comprados[cinema] = {}
-            if pelicula in informacion_asientos_comprados[cinema]:
-                informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
-            else:
-                informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
+    if path.exists(ruta_ingresos):
+        with open(ruta_ingresos, 'r') as archivo_ingesos:
+            for linea in archivo_ingesos:
+                datos = linea.strip('\n').split(', ')
+                cinema = datos[2]
+                pelicula = datos[1]
+                entradas_vendidas = int(datos[3])
+                if cinema not in informacion_asientos_comprados:
+                    informacion_asientos_comprados[cinema] = {}
+                if pelicula in informacion_asientos_comprados[cinema]:
+                    informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
+                else:
+                    informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
 
     return informacion_asientos_comprados
 
@@ -935,6 +935,7 @@ def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_princi
     # HACER FUNCION: reestablecer_boletos_y_snacks()
 
     ventana_final.destroy()
+    # LEER : tuve que comentar la linea de abajo porque me aparecia error (una tipo function no se podia usar deiconify)
     ventana_principal.deiconify()
 
 
@@ -971,27 +972,24 @@ def extraer_imagen_desde_pdf(archivo_pdf, ruta_imagen_png) -> bool:
 
 #---------------------------------------------------------------DECODIFICANDO_QR_DESDE_IMAGEN-----------------------------------------------------#
 
-def decodificar_qr_desde_imagen(ruta_imagen):
+def decodificar_qr_desde_imagen(ruta_imagen) -> str:
     #Se modifico porque al usar decode (pyzbar) tiraba error porque no reconocia la libreria
     #Lee la imagen 
     imagen = imread(ruta_imagen)
     #Pasa la imagen a escala de grises para detectar mejor
     imagen_gris = cvtColor(imagen, COLOR_BGR2GRAY)
     detector = QRCodeDetector()
-    #Decodifica el qr
+    #Decodifica el qr y devuelve una tupla
     datos_qr = detector.detectAndDecode(imagen_gris)
 
-    if datos_qr:
-        # Devuelve el valor del qr
-        return datos_qr[0]
-    else:
-        return None
+    #devuelve el valor del qr en string
+    return datos_qr[0]
 
-#-----------------------------------------------------------AGREGAR/VERIFICAR_QR_EN_TXT-----------------------------------------------------------#
+#-----------------------------------------------------------AGREGAR_DATOS_QR_EN_TXT-----------------------------------------------------------#
 
 def agregar_a_ingresos_txt(codigo_qr):
-    # Verificar si el código QR ya está en ingresos.txt
-    with open("ingresos.txt", "a") as archivo_ingresos:
+    # Agrega datos del QR en ingresos.txt
+    with open(ruta_ingresos, "a") as archivo_ingresos:
         archivo_ingresos.write(f'{codigo_qr}\n')
 
 #--------------------------------------------------------------------QR_PDF-----------------------------------------------------------------------#
@@ -1012,7 +1010,7 @@ def generar_ventana_emergente(mensaje : int) -> None:
     boton_error.config(bg="black", fg="red")
     boton_error.pack(ipadx=25, ipady=10)
 
-def codigo(cajon, ventana, carpeta_pdf):
+def codigo(cajon, carpeta_pdf):
     dato_entrada = cajon.get().upper()
     #print(f"Ingresaste: {dato_entrada}")
 
@@ -1038,7 +1036,7 @@ def codigo(cajon, ventana, carpeta_pdf):
                 archivo_lectura.seek(0)
                 contenido_actual = archivo_lectura.read()
 
-            if codigo_qr is not None:
+            if len(codigo_qr) != 0:
                 #print(f"Código QR extraído: {codigo_qr}")
                 
                 # Entra si no hay una linea igual
@@ -1070,7 +1068,7 @@ def codigo(cajon, ventana, carpeta_pdf):
 
 #------------------------------------------------------------------LECTURA_QR---------------------------------------------------------------------#
 
-def qr(vent):
+def lector_qr() -> None:
     #abre la camara
     camara = VideoCapture(0)
     ciclo = True
@@ -1110,12 +1108,12 @@ def qr(vent):
     destroyAllWindows()
 
     
-    with open("ingresos.txt", "a+") as archivo_lectura:
+    with open(ruta_ingresos, "a+") as archivo_lectura:
         archivo_lectura.seek(0)
         contenido_actual = archivo_lectura.read()
 
     if dato_qr not in contenido_actual:
-        with open("ingresos.txt", "a") as archivo:
+        with open(ruta_ingresos, "a") as archivo:
             archivo.write(dato_qr + '\n')
         mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
         generar_ventana_emergente(mensaje)
@@ -1143,11 +1141,11 @@ def menu_QR():
     cajon = Entry(frame_principal)
     cajon.pack(pady=20, ipadx=50)
 
-    boton_1 = Button(frame_principal, text="VALIDAR", command=lambda: codigo(cajon, ventana, "QR"))
+    boton_1 = Button(frame_principal, text="VALIDAR", command=lambda: codigo(cajon, "QR"))
     boton_1.config(bg="black", fg="red")
     boton_1.pack(pady=20, ipadx=50, ipady=5)
 
-    boton_2 = Button(frame_principal, text="ENCENDER QR", command=lambda: qr(ventana))
+    boton_2 = Button(frame_principal, text="ENCENDER QR", command= lector_qr)
     boton_2.config(bg="black", fg="red")
     boton_2.pack(pady=20, ipadx=50, ipady=5)
 
