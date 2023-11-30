@@ -10,224 +10,91 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import fitz
 
-letra_español:str = 'Ñ'
-conversion_de_letra:str = 'NI'
-ruta_ingresos:str = 'ingresos.txt'
-PRECIO_DE_ENTRADA:int=1800.00
-
-def obtener_cantidad_asientos(dict_menu:dict)->int:
-
-    
-    url = "http://vps-3701198-x.dattaweb.com:4000/cinemas"
-    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
-
-    headers = {'Authorization': f'Bearer {token}'}
-    verificar_archivo = get(url, headers=headers)
-
-    if verificar_archivo.status_code == 200:
-        lista_de_cinemas = verificar_archivo.json()
-
-        for informacion_cinemas in lista_de_cinemas:
-            if informacion_cinemas['location'] == dict_menu['location']:
-                return informacion_cinemas['available_seats'] 
-  
-#--------------------------------------------------------------------CERRAR_VENTANA---------------------------------------------------------------#
-
-def cerrar_ventana(ventana, ventana_reserva)-> None:
-
-    ventana.destroy()
-    ventana_reserva.deiconify()
+ACEPTADO:int = 200
+PRECIO_DE_ENTRADA:int = 1800.00
+NO_HAY_SNACK_COMPRADO:int = 0
+NO_HAY_ASIENTOS_DISPONIBLES:int = 0
+INICIAL:int = 4
+FINAL:int = 8
 
 
-def mostrar_encabezados(ventana_final, dict_menu)->None:
+#------------------------------------------------FUNCIONES_PARA_LA_VENTANA_DEL_CARRITO_PAGAR-----------------------------------------------------------------------------
 
-    name = 'name'
-    encabezado = Label(
-                            ventana_final, text=f'CARRITO PARA:', 
-                            font=20, fg='white', bg='black'
-                        )
-    encabezado.pack(side='top', pady=5)
+def fecha_y_hora() -> str:
 
-    nombre_pelicula = Label(ventana_final, text=f'{dict_menu[name]}', font=20, fg='white', bg='black')
-    nombre_pelicula.pack(pady=10)
+    estructura = localtime()
+
+    return strftime('%Y-%m-%d %H:%M:%S', estructura)
 
 
-def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, dict_menu, 
-                            ventana3, contador_de_snacks)->None:
+def crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado, contador_de_snacks)->str:
 
-    botones_de_accion = Frame(ventana_final,bg='black')
-    botones_de_accion.pack(side='top', anchor='center', pady=10)
-    
-    boton_comprar = Button(botones_de_accion, text='PAGAR', command=lambda: crear_qr(cantidad_entradas, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks))
-    boton_comprar.pack(side='top', anchor='n', pady=10)
+    letra_español:str = 'Ñ'
+    conversion_de_letra:str = 'NI'
 
-    boton_cancelar_compra = Button(
-                                    botones_de_accion, text='CANCELAR', command=lambda: cancelar_compra(ventana3, ventana_final)
-                                    )
-    boton_cancelar_compra.pack(side='bottom', anchor='center') 
+    id_qr:str = 'QR_' + str(cantidad_de_archivos + 1)
+    pelicula:str = dict_menu['name']
+    if letra_español in pelicula:
+        pelicula = pelicula.replace(letra_español, conversion_de_letra)
+    cine = dict_menu['location']
+    entradas:str = boleto_comprado
+    tiempo:str = fecha_y_hora()
+    snacks_comprados:str = ''
+    for snacks in contador_de_snacks:
+        if contador_de_snacks[snacks] > NO_HAY_SNACK_COMPRADO:
+            snacks_comprados += f'{snacks}: {str(contador_de_snacks[snacks])}, '
 
-#--------------------------------------------------------------CONFIRMAR_COMPRA-------------------------------------------------------------------#
+    contenido_qr:str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
 
-def ventana_confirmar_compra( informacion_snacks, contador_de_snacks, asientos_disponibles_en_la_sala,
-                              lista_final, ventana3,
-                              dict_menu, eleccion_entradas, ventana_principal)-> None:
-    
-    name = 'name'
-    cantidad_entradas = eleccion_entradas.get()
-
-    if cantidad_entradas == '0' or cantidad_entradas == '':
-        ventana3.withdraw()
-        messagebox.showwarning('Advertencia', 'No hay boletos seleccionados')
-        ventana3.deiconify()
-    
-    elif int(cantidad_entradas) > asientos_disponibles_en_la_sala:
-        ventana3.withdraw()
-        messagebox.showwarning('Advertencia', f'No puedes comprar más de {asientos_disponibles_en_la_sala} asientos')
-        ventana3.deiconify()
-
-    else:
-        ventana3.withdraw()
-
-        ventana_final = Toplevel()
-        ventana_final.geometry('352x400')
-        ventana_final.config(bg='black')
-        ventana_final.resizable(width=False, height=False)
-
-        mostrar_encabezados(ventana_final, dict_menu)        
-        snacks_comprados(contador_de_snacks, ventana_final, informacion_snacks, lista_final)
-        boletos_comprados(ventana_final, cantidad_entradas)
-        mostrar_precio_total(ventana_final, lista_final, cantidad_entradas)
-        botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, dict_menu, ventana3, contador_de_snacks) 
-
-        ventana_final.mainloop()
-
-#--------------------------------------------------------------CANTIDAD_SNACKS--------------------------------------------------------------------#
-
-def cantidad_de_snacks(informacion_snacks:dict, contador_de_snacks:dict)-> None:
-
-    for snack in informacion_snacks:
-        contador_de_snacks[snack]=0
-
-#------------------------------------------------------------------REINICIAR_SNACKS---------------------------------------------------------------#
-
-def reiniciar_snacks(contador_de_snacks:dict, ventana, cantidad_visible:dict, ventana_reserva) -> None:
-
-    for snack in contador_de_snacks:
-        contador_de_snacks[snack]=0
-        cantidad_visible.config(text=f'{snack}: 0')
-
-    ventana.destroy()
-    ventana_reserva.deiconify()
-
-#----------------------------------------------------------------CANCELAR_COMPRA_BOLETOS----------------------------------------------------------#
-
-def cancelar_compra(ventana_anterior, ventana_actual) -> None:
-
-    ventana_actual.destroy()
-    ventana_anterior.deiconify()
-
-#---------------------------------------------------------------AUMENTAR_SNACKS-------------------------------------------------------------------#
-
-def aumentar_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
-
-    contador_de_snacks[snack]+=1
-    cantidad_visible.config(text=f'{snack}: {contador_de_snacks[snack]}')
-
-#----------------------------------------------------------------DISMINUIR_SNACKS-----------------------------------------------------------------#
-
-def disminuir_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
-
-    if contador_de_snacks[snack]>0:
-        contador_de_snacks[snack]-=1
-        cantidad_visible.config(text=f'{snack}: {contador_de_snacks[snack]}')
-
-#---------------------------------------------------------------------BTN_ACEPTAR/CANCELAR_SNACKS-------------------------------------------------#
-
-def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks:dict, cantidad_visible:str, ventana_reserva)->None:
-
-    aceptar = Button(
-                     ventana3, text='Aceptar', 
-                     command=lambda: cerrar_ventana(ventana3, ventana_reserva),
-                     fg='blue'
-                    )
-    aceptar.pack()
-    aceptar.place(x=95, y=220)
-   
-    cancelar = Button(
-                      ventana3, text='Cancelar compra', 
-                      command=lambda: reiniciar_snacks(contador_de_snacks, ventana3, cantidad_visible, ventana_reserva),
-                      fg='red'
-                     )
-    cancelar.pack()
-    cancelar.place(x=70, y=250)
- 
-#--------------------------------------------------------------BTN_SNACKS-------------------------------------------------------------------------#
-
-def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, ventana_reserva, ventana_snacks)->None:
-
-    encabezado = Label(
-                        ventana_snacks, text='COMPRAR SNACKS',
-                        fg='white', bg='black'
-                      )
-    encabezado.pack(side='top')
-
-    for snack in informacion_snacks:
+    if ', ]' in contenido_qr:
+        contenido_qr = contenido_qr.replace(', ]', ']')
+    elif '[]' in contenido_qr:
+        contenido_qr = contenido_qr.replace('[]', 'sin snacks')
         
-        posiciones = Frame(ventana3,bg='black')
-        posiciones.pack(side='top', anchor='w')
+    return id_qr, contenido_qr
 
-        cantidad_visible = Label(
-                                 posiciones, text=f'{snack}: {contador_de_snacks[snack]}',
-                                 width=15, fg='white', bg='black'
-                                 )
-        cantidad_visible.pack(side='left', 
-                              anchor='w')
 
-        restar = Button(posiciones, text='- 1', command=lambda s=snack, c=cantidad_visible: 
-                        disminuir_snacks(s, contador_de_snacks, c), fg='red')
-        restar.pack(side='left')
+def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks) -> None:
 
-        sumar = Button(posiciones, text='+1', command=lambda s=snack, c=cantidad_visible: 
-                       aumentar_snacks(s, contador_de_snacks, c), fg='blue')
-        sumar.pack(side='left')
+    ruta_qr: str = path.join(getcwd(), 'QR')
 
-        precios = Label(posiciones, text=f'${informacion_snacks[snack]}',
-                        width=12, fg='white', bg='black')
-        precios.pack(side='left')
-       
+    if not path.exists(ruta_qr):
+        makedirs(ruta_qr)
 
-    botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible, ventana_reserva)
+    archivos_en_qr: list[str] = listdir(ruta_qr)
+    cantidad_de_archivos: int = len(archivos_en_qr)    
 
-#-----------------------------------------------------------------OBTENER_SNACKS------------------------------------------------------------------#
+    id_qr, contenido_qr = crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado, contador_de_snacks)
+    print(contenido_qr)
 
-def obtener_snacks()-> dict:
-    url = "http://vps-3701198-x.dattaweb.com:4000/snacks"
-    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+    ruta_imagen_qr: str = path.join(ruta_qr, f'{id_qr}.png')
+    ruta_pdf: str = path.join(ruta_qr, f'{id_qr}.pdf')
 
-    headers = {'Authorization': f'Bearer {token}'}
-    verificar_archivo = get(url, headers=headers)
+    imagen = make(contenido_qr)
+    imagen.save(ruta_imagen_qr)
 
-    if verificar_archivo.status_code == 200:
-        diccionario_snacks = verificar_archivo.json()
+    archivo_pdf = canvas.Canvas(ruta_pdf, pagesize=letter)
+    archivo_pdf.drawInlineImage(ruta_imagen_qr, 100, 500, width=300, height=300)
+    archivo_pdf.save()
 
-    return diccionario_snacks #Retorna una diccionario ya traducido de Json
+    remove(ruta_imagen_qr)
 
-#------------------------------------------------------------------VENTANA_SNACKS-----------------------------------------------------------------#
+    ventana_final.destroy()
+    ventana_principal.deiconify()
 
-def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict, ventana_reserva)-> None:
 
-    ventana_reserva.withdraw()
+def precio_por_snack(nombre_snack, cantidad_snack:dict, precio_snack:dict, lista_final:list[int])-> str:
 
-    ventana_snacks = Toplevel()
-    ventana_snacks.geometry('250x300')
-    ventana_snacks.config(bg='black')
-    ventana_snacks.resizable(width=False, height=False)
+    precio_final = cantidad_snack[nombre_snack] * float(precio_snack[nombre_snack])
+    lista_final.append(precio_final)
 
-    botones_snacks(ventana_snacks, informacion_snacks, contador_de_snacks, ventana_reserva, ventana_snacks)
+    return str(precio_final)
 
-    ventana_snacks.mainloop()
 
-#---------------------------------------------------------------SNACK_COMPRADOS-------------------------------------------------------------------#
+def precio_boletos(cantidad_entradas:str) -> str:
+
+    return str(int(cantidad_entradas)*PRECIO_DE_ENTRADA)
+
 
 def snacks_comprados(contador_de_snacks:dict, ventana_final, informacion_snacks:dict, lista_final:list[int])-> None:
 
@@ -236,7 +103,7 @@ def snacks_comprados(contador_de_snacks:dict, ventana_final, informacion_snacks:
         cantidades = Frame(ventana_final, bg='black')
         cantidades.pack(side='top', anchor='w')
         
-        if contador_de_snacks[nombre_snacks] > 0:
+        if contador_de_snacks[nombre_snacks] > NO_HAY_SNACK_COMPRADO:
             
             snacks_seleccionados = Label(
                                             cantidades, text=f'{contador_de_snacks[nombre_snacks]} {nombre_snacks}',
@@ -251,28 +118,36 @@ def snacks_comprados(contador_de_snacks:dict, ventana_final, informacion_snacks:
                                                 )
             precio_snacks_seleccionados.pack(side='left')
 
-#------------------------------------------------------------BOLETOS_COMPRADOS--------------------------------------------------------------------#
-
-def boletos_comprados(ventana_final, boleto_comprado)-> None:
+def boletos_comprados(ventana_final, cant_boletos_comprados)-> None:
 
     tickets = Frame(ventana_final,bg='black')
     tickets.pack(side='top', anchor='w')
   
     cantidad_boletos = Label(
-                                tickets, text=f'{boleto_comprado} Entradas', 
+                                tickets, text=f'{cant_boletos_comprados} Entradas', 
                                 font=20, width=25, 
                                 fg='orange', bg='black'
                             )
     cantidad_boletos.pack(side='left',  anchor='w')
 
     precio_boletos_seleccionados = Label(
-                                            tickets, text=precio_boletos(boleto_comprado),
+                                            tickets, text=precio_boletos(cant_boletos_comprados),
                                             font=20, fg='green', 
                                             bg='black'
                                         )
     precio_boletos_seleccionados.pack(side='left')
-  
-#-----------------------------------------------------------------MOSTRAR_PRECIO_FINAL------------------------------------------------------------#
+
+
+def precio_final(lista_final:list[int], cantidad_entradas:str)-> str:
+
+    boletos: float = float(precio_boletos(cantidad_entradas))
+    total: int = 0
+
+    for precios in lista_final:
+        total+=precios
+
+    return str(total+boletos)
+
 
 def mostrar_precio_total(ventana_final, lista_final, boleto_comprado)-> None:
 
@@ -292,35 +167,193 @@ def mostrar_precio_total(ventana_final, lista_final, boleto_comprado)-> None:
                         )
     precio_total.pack(side='left')
 
-#------------------------------------------------------------------PRECIO_FINAL-------------------------------------------------------------------# 
+def mostrar_encabezados(ventana_final, dict_menu)->None:
 
-def precio_final(lista_final:list[int], cantidad_entradas:str)-> str:
+    name = 'name'
+    encabezado = Label(
+                            ventana_final, text=f'CARRITO PARA:', 
+                            font=20, fg='white', bg='black'
+                        )
+    encabezado.pack(side='top', pady=5)
 
-    boletos: float = float(precio_boletos(cantidad_entradas))
-    total: int = 0
+    nombre_pelicula = Label(ventana_final, text=f'{dict_menu[name]}', font=20, fg='white', bg='black')
+    nombre_pelicula.pack(pady=10)
 
-    for precios in lista_final:
-        total+=precios
 
-    return str(total+boletos)
+def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, dict_menu, 
+                            ventana3, contador_de_snacks)->None:
 
-#---------------------------------------------------------------PRECIO_BOLETOS--------------------------------------------------------------------#
+    botones_de_accion = Frame(ventana_final, bg='black')
+    botones_de_accion.pack(side='top', anchor='center', pady=10)
+    
+    boton_pagar = Button(botones_de_accion, text='PAGAR', fg='blue', 
+                         command=lambda: crear_qr(cantidad_entradas, dict_menu, ventana_final, 
+                                                  ventana3, ventana_principal, contador_de_snacks))
+    boton_pagar.pack(side='top', anchor='n', pady=10)
 
-def precio_boletos(cantidad_entradas:str) -> str:
+    boton_cancelar_compra = Button(botones_de_accion, text='CANCELAR', fg='red', 
+                                   command=lambda: cancelar_compra(ventana3, ventana_final))
+    boton_cancelar_compra.pack(side='bottom', anchor='center', pady=10) 
 
-    return str(int(cantidad_entradas)*PRECIO_DE_ENTRADA)
 
-#----------------------------------------------------------------PRECIO_SNACK---------------------------------------------------------------------#
+def advertencia_no_boletos_comprados(ventana_anterior):
 
-def precio_por_snack(nombre_snack, cantidad_snack:dict, precio_snack:dict, lista_final:list[int])-> str:
+    ventana_anterior.withdraw()
+    messagebox.showwarning('Advertencia', 'No hay boletos seleccionados')
+    ventana_anterior.deiconify()
+    
 
-    precio_final = cantidad_snack[nombre_snack] * float(precio_snack[nombre_snack])
-    lista_final.append(precio_final)
+def advertencia_asientos_excedidos(ventana_anterior, asientos_disponibles_en_la_sala):
 
-    return str(precio_final)
+    ventana_anterior.withdraw()
+    messagebox.showwarning('Advertencia', f'No puedes comprar más de {asientos_disponibles_en_la_sala} asientos')
+    ventana_anterior.deiconify()
 
-def validar_texto(nuevo_valor:str)->bool:
-    return nuevo_valor.isdigit() or nuevo_valor == ''
+
+def ejecucion_ventana_confirmar_compra(ventana_anterior, dict_menu, contador_de_snacks, informacion_snacks, 
+                                       lista_final, cantidad_entradas, ventana_principal):
+
+    ventana_anterior.withdraw()
+
+    ventana_final = Toplevel()
+    ventana_final.geometry('352x400')
+    ventana_final.config(bg='black')
+    ventana_final.resizable(width=False, height=False)
+
+    mostrar_encabezados(ventana_final, dict_menu)        
+    snacks_comprados(contador_de_snacks, ventana_final, informacion_snacks, lista_final)
+    boletos_comprados(ventana_final, cantidad_entradas)
+    mostrar_precio_total(ventana_final, lista_final, cantidad_entradas)
+    botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, dict_menu, ventana_anterior, contador_de_snacks) 
+
+    ventana_final.mainloop()
+
+
+
+def confirmar_compra( informacion_snacks, contador_de_snacks, asientos_disponibles_en_la_sala,
+                              lista_final, ventana3,
+                              dict_menu, eleccion_entradas, ventana_principal)-> None:
+    
+    cantidad_entradas = eleccion_entradas.get()
+
+    if cantidad_entradas == '0' or cantidad_entradas == '':
+        advertencia_no_boletos_comprados(ventana3)
+    
+    elif int(cantidad_entradas) > asientos_disponibles_en_la_sala:
+        advertencia_asientos_excedidos(ventana3, asientos_disponibles_en_la_sala)
+
+    else:
+        ejecucion_ventana_confirmar_compra(ventana3, dict_menu, contador_de_snacks, informacion_snacks, 
+                                       lista_final, cantidad_entradas, ventana_principal)
+
+#-----------------------------------------------FUNCIONES_PARA_LA_VENTANA_QUE_SE_COMPRA_ENTRADAS_Y_SNACKS--------------------------------------------------------------
+
+
+def obtener_snacks()-> dict:
+    url = "http://vps-3701198-x.dattaweb.com:4000/snacks"
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+    headers = {'Authorization': f'Bearer {token}'}
+    verificar_archivo = get(url, headers=headers)
+
+    if verificar_archivo.status_code == ACEPTADO:
+        diccionario_snacks = verificar_archivo.json()
+
+    return diccionario_snacks #Retorna una diccionario ya traducido de Json
+
+def cantidad_de_snacks(informacion_snacks:dict, contador_de_snacks:dict)-> None:
+
+    for snack in informacion_snacks:
+        contador_de_snacks[snack]=0
+
+
+def reiniciar_snacks(contador_de_snacks:dict, ventana, cantidad_visible:dict, ventana_reserva) -> None:
+
+    for snack in contador_de_snacks:
+        contador_de_snacks[snack]=0
+        cantidad_visible.config(text=f'{snack}: 0')
+
+    ventana.destroy()
+    ventana_reserva.deiconify()
+
+
+def cancelar_compra(ventana_anterior, ventana_actual) -> None:
+
+    ventana_actual.destroy()
+    ventana_anterior.deiconify()
+
+
+def aumentar_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
+
+    contador_de_snacks[snack]+=1
+    cantidad_visible.config(text=f'{snack}: {contador_de_snacks[snack]}')
+
+
+def disminuir_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
+
+    if contador_de_snacks[snack]>0:
+        contador_de_snacks[snack]-=1
+        cantidad_visible.config(text=f'{snack}: {contador_de_snacks[snack]}')
+
+
+def cerrar_ventana(ventana, ventana_reserva)-> None:
+
+    ventana.destroy()
+    ventana_reserva.deiconify()
+
+
+def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks:dict, cantidad_visible:str, ventana_reserva)->None:
+
+    aceptar = Button(
+                     ventana3, text='Aceptar', 
+                     command=lambda: cerrar_ventana(ventana3, ventana_reserva),
+                     fg='blue', font=15
+                    )
+    aceptar.pack()
+    aceptar.place(x=120, y=220)
+   
+    cancelar = Button(
+                      ventana3, text='Cancelar compra', 
+                      command=lambda: reiniciar_snacks(contador_de_snacks, ventana3, cantidad_visible, ventana_reserva),
+                      fg='red', font=15
+                     )
+    cancelar.pack()
+    cancelar.place(x=90, y=250)
+ 
+def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, ventana_reserva, ventana_snacks)->None:
+
+    encabezado = Label(
+                        ventana_snacks, text='COMPRAR SNACKS',
+                        fg='white', bg='black'
+                      )
+    encabezado.pack(side='top')
+
+    for snack in informacion_snacks:
+        
+        posiciones = Frame(ventana3,bg='black')
+        posiciones.pack(side='top', anchor='w')
+
+        cantidad_visible = Label(
+                                 posiciones, text=f'{snack}: {contador_de_snacks[snack]}',
+                                 width=15, fg='white', bg='black', font=15
+                                 )
+        cantidad_visible.pack(side='left', 
+                              anchor='w')
+
+        restar = Button(posiciones, text='- 1', command=lambda s=snack, c=cantidad_visible: 
+                        disminuir_snacks(s, contador_de_snacks, c), fg='red')
+        restar.pack(side='left')
+
+        sumar = Button(posiciones, text='+1', command=lambda s=snack, c=cantidad_visible: 
+                       aumentar_snacks(s, contador_de_snacks, c), fg='blue')
+        sumar.pack(side='left')
+
+        precios = Label(posiciones, text=f'${informacion_snacks[snack]}',
+                        width=12, fg='white', bg='black', font=15)
+        precios.pack(side='left')
+       
+
+    botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible, ventana_reserva)
 
 
 def presentar_cant_entradas(asientos_disponibles_en_la_sala)->str:
@@ -328,71 +361,98 @@ def presentar_cant_entradas(asientos_disponibles_en_la_sala)->str:
 Cantidad de entradas a comprar:'''
 
 
+def validar_texto(nuevo_valor:str)->bool:
+    return nuevo_valor.isdigit() or nuevo_valor == ''
+
+
 def mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala:int)->None:
 
-    comprar_entradas = Label(ventana_reserva, text='SECCION DE RESERVAS', fg='white', bg='black')
-    comprar_entradas.pack()
+    comprar_entradas = Label(ventana_reserva, text='SECCION DE RESERVAS', fg='white', bg='black', font=15)
+    comprar_entradas.pack(pady=5)
 
     mostrar_cant_asientos = Label(ventana_reserva, 
-                                    text= presentar_cant_entradas(asientos_disponibles_en_la_sala), fg='white', bg='black')
+                                    text= presentar_cant_entradas(asientos_disponibles_en_la_sala), fg='white', bg='black', font=15)
     mostrar_cant_asientos.pack()
 
 
-def textos_y_botones(ventana_reserva, ventana_principal, contador_de_snacks:dict, informacion_snacks:dict, lista_final:list[int],
+def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict, ventana_reserva)-> None:
+
+    ventana_reserva.withdraw()
+
+    ventana_snacks = Toplevel()
+    ventana_snacks.geometry('300x300')
+    ventana_snacks.config(bg='black')
+    ventana_snacks.resizable(width=False, height=False)
+
+    botones_snacks(ventana_snacks, informacion_snacks, contador_de_snacks, ventana_reserva, ventana_snacks)
+
+    ventana_snacks.mainloop()
+
+
+def ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_snacks:dict, informacion_snacks:dict, lista_final:list[int],
                      asientos_disponibles_en_la_sala:str, dict_menu:dict, ventana2)->None:
     
     validar_ingreso = (ventana_reserva.register(validar_texto), '%P')
-    eleccion_entradas = Entry(ventana_reserva, width=5, validate="key", validatecommand=validar_ingreso)
-    eleccion_entradas.pack()
+    eleccion_entradas = Entry(ventana_reserva, width=5, validate="key", validatecommand=validar_ingreso, font=15)
+    eleccion_entradas.pack(pady=5)
 
-    opciones_snacks = Button(
-                                ventana_reserva, text='Añadir snacks', 
-                                command=lambda: ventana_de_snacks(contador_de_snacks, informacion_snacks, ventana_reserva), 
-                                fg='white', bg='black'
+    opciones_snacks = Button(ventana_reserva, text='Añadir snacks', 
+                            command=lambda: ventana_de_snacks(contador_de_snacks, informacion_snacks, ventana_reserva), 
+                            fg='green', bg='black', font=15
                             )
-    opciones_snacks.pack()
+    opciones_snacks.pack(pady=5)
 
-    terminar_compra = Button(
-                                ventana_reserva, text='Carrito', 
-                                command=lambda: ventana_confirmar_compra(informacion_snacks, contador_de_snacks,
-                                                                        asientos_disponibles_en_la_sala, lista_final, 
-                                                                        ventana_reserva, dict_menu, eleccion_entradas, ventana_principal)
-                            )  #implememtar lógica para comprar entradas
-    terminar_compra.pack()
+    terminar_compra = Button(ventana_reserva, text='Ir a Carrito', 
+                            command=lambda: confirmar_compra(informacion_snacks, contador_de_snacks,
+                                                                     asientos_disponibles_en_la_sala, lista_final, 
+                                                                     ventana_reserva, dict_menu, eleccion_entradas, 
+                                                                     ventana_principal),
+                            fg='blue', bg='black', font=15)
+    terminar_compra.pack(pady=5)
 
-    cancelar = Button(
-                        ventana_reserva, text='Cancelar compra', 
-                        command=lambda: cancelar_compra(ventana2, ventana_reserva)
-                    )
-    cancelar.pack()
+    cancelar = Button(ventana_reserva, text='Cancelar compra', 
+                      command=lambda: cancelar_compra(ventana2, ventana_reserva), 
+                      fg='red', bg='black', font=15)
+    cancelar.pack(pady=5)
     
-#--------------------------------------------------------------PANTALLA_RESERVAS------------------------------------------------------------------#
+def advertencia_sin_asientos(ventana_anterior)->None:
 
-def ventana_de_reservas(ventana2, dict_menu:dict, asientos_disponibles_en_la_sala:str, ventana_principal)-> None:
+    ventana_anterior.withdraw()
+    messagebox.showwarning('Advertencia', 'Ya no hay asientos disponibles')
+    ventana_anterior.deiconify()
 
-    if asientos_disponibles_en_la_sala == 0:
-        ventana2.withdraw()
-        messagebox.showwarning('Advertencia', 'Ya no hay asientos disponibles')
-        ventana2.deiconify()
 
-    else:
-        ventana2.withdraw()
+def ejecutar_ventana_de_reservas(ventana_anterior, asientos_disponibles_en_la_sala:int, dict_menu:dict)->None:
+        
+        ventana_anterior.withdraw()
+
         lista_final: list =[]
         informacion_snacks: dict = obtener_snacks()
         contador_de_snacks: dict = {}
         cantidad_de_snacks(informacion_snacks, contador_de_snacks)
 
         ventana_reserva = Toplevel()
-        ventana_reserva.geometry('300x160')
+        ventana_reserva.geometry('300x250')
         ventana_reserva.title('')
         ventana_reserva.resizable(width=False, height=False)
         ventana_reserva.config(bg='black')
 
         mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala)
-        textos_y_botones(ventana_reserva, ventana_principal, contador_de_snacks, informacion_snacks, lista_final,
-                         asientos_disponibles_en_la_sala, dict_menu, ventana2)
+        ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_snacks, informacion_snacks, lista_final,
+                         asientos_disponibles_en_la_sala, dict_menu, ventana_anterior)
+        
 
-#---------------------------------------------------------------OBTENCION_INFO_PELICULA-----------------------------------------------------------#
+def ventana_de_reservas(ventana2, dict_menu:dict, asientos_disponibles_en_la_sala:str, ventana_principal)-> None:
+
+    if asientos_disponibles_en_la_sala == NO_HAY_ASIENTOS_DISPONIBLES:
+        advertencia_sin_asientos(ventana2)
+
+    else:
+        ejecutar_ventana_de_reservas(ventana2, asientos_disponibles_en_la_sala, dict_menu)
+
+
+#-------------------------------------FUNCIONES_PARA_LA_VENTANA_QUE_MUESTRA_LA_INFORMACION_DE_LA_PELICULA_SELECCIONADA------------------------------------------
+
 
 def api_ventana_secundaria(id_principal)->tuple:
 
@@ -404,18 +464,17 @@ def api_ventana_secundaria(id_principal)->tuple:
     headers = {'Authorization': f'Bearer {token}'} #llave de acceso
     verificar_archivo = get(url, headers=headers)
 
-    if verificar_archivo.status_code == 200:
+    if verificar_archivo.status_code == ACEPTADO:
         x = verificar_archivo.json() #diccionario
 
     informacion = list(x.keys())
 
-    for i in range(4,8): 
+    for i in range(INICIAL, FINAL): 
         variable = x[informacion[i]] 
         guardar.append(variable)   # guardo la informacion que necesito de la pelicula
 
     return id_principal, guardar
 
-#-------------------------------------------------------------VOLVER_AL_MENU----------------------------------------------------------------------#
 
 def volver_al_menu(ventana_secundaria,ventana_principal) -> None:
 
@@ -423,9 +482,8 @@ def volver_al_menu(ventana_secundaria,ventana_principal) -> None:
     ventana_principal.deiconify()
     ventana_secundaria.destroy()
 
-#-------------------------------------------------------------------BOTONES-----------------------------------------------------------------------#
 
-def botones (ventana_secundaria, ventana_principal, dict_menu:dict, asientos_disponibles_en_la_sala:str) -> None:
+def botones(ventana_secundaria, ventana_principal, dict_menu:dict, asientos_disponibles_en_la_sala:str) -> None:
 
     '''
     BTN-VOLVER AL MENU
@@ -453,7 +511,6 @@ def botones (ventana_secundaria, ventana_principal, dict_menu:dict, asientos_dis
                             )
     boton_reservar.place(relx=0.88, rely=0.9, anchor=CENTER)
 
-#-------------------------------------------------------------------SALA--------------------------------------------------------------------------#
 
 def sala(ventana_secundaria, id) -> None:
 
@@ -463,7 +520,6 @@ def sala(ventana_secundaria, id) -> None:
                           )
     sala_proyectar.place(relx=0.5, rely=0.1, anchor=CENTER)
 
-#--------------------------------------------------------------------SINOPSIS---------------------------------------------------------------------#
 
 def sinopsis(ventana_secundaria, guardar) -> None: 
 
@@ -480,64 +536,61 @@ def sinopsis(ventana_secundaria, guardar) -> None:
                           )
     texto_sinopsis.place(relx=0.5, rely=0.42, anchor=CENTER)
 
-#------------------------------------------------------------------------GENERO-------------------------------------------------------------------#
 
-def genero(ventana_secundaria, guardar) -> None:
+def genero(ventana_secundaria, guardar)->None:
 
-    genero = Label(
-                    ventana_secundaria,    text= "GENERO: ",
-                    background= "black",   fg="red"     
-                  )
+    genero = Label(ventana_secundaria,    text= "GENERO: ",
+                   background= "black",   fg="red")
     genero.place(relx=0.2, rely=0.55, anchor=CENTER)
 
-    texto_genero = Label(
-                            ventana_secundaria,    text= guardar[1],
-                            background= "black",   fg="red"    
-                        )  
+    texto_genero = Label(ventana_secundaria,    text= guardar[1],
+                         background= "black",   fg="red")  
     texto_genero.place(relx=0.25, rely=0.55, anchor=CENTER)
     
-#----------------------------------------------------------------ACTORES--------------------------------------------------------------------------#
 
 def actores(ventana_secundaria, guardar) -> None:
 
-    actores = Label(
-                    ventana_secundaria,     text= "ACTORES: ",
-                    background= "black",    fg="red"      
-                   )
+    actores = Label(ventana_secundaria, text= "ACTORES: ",
+                    background= "black", fg="red")
     actores.place(relx=0.2, rely=0.66, anchor=CENTER)
 
-    texto_actores = Label(
-                            ventana_secundaria,     text= guardar[3],
-                            background= "black",    fg="red"    
-                         )
+    texto_actores = Label(ventana_secundaria, text= guardar[3],
+                          background= "black", fg="red")
     texto_actores.place(relx=0.35, rely=0.66, anchor=CENTER)
 
-#-------------------------------------------------------------DURACION----------------------------------------------------------------------------#
 
 def duracion(ventana_secundaria, guardar) -> None:
 
-    duracion = Label(
-                        ventana_secundaria,  text= "DURACION: ",
-                        background= "black", fg="red" 
-                    )
+    duracion = Label(ventana_secundaria, text= "DURACION: ",
+                    background= "black", fg="red")
     duracion.place(relx=0.2, rely=0.6, anchor=CENTER)
 
-    texto_duracion = Label(
-                            ventana_secundaria,  text= guardar[2],
-                            background= "black", fg="red"
-                          )
+    texto_duracion = Label(ventana_secundaria,  text= guardar[2],
+                           background= "black", fg="red")
     texto_duracion.place(relx=0.25, rely=0.6, anchor=CENTER)
 
-#----------------------------------------------------------HAY ASIENTOS?--------------------------------------------------------------------------#
 
-def no_hay_lugar():
-
-        mensaje: str = messagebox.showinfo("Lo sentimos, no hay mas asientos disponibles para ver esta pelicula por favor vuelva al menu")
-
-def saber_asientos_comprados()->dict:
+def obtener_cantidad_asientos(dict_menu:dict)->int:
     
+    url = "http://vps-3701198-x.dattaweb.com:4000/cinemas"
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
+
+    headers = {'Authorization': f'Bearer {token}'}
+    verificar_archivo = get(url, headers=headers)
+
+    if verificar_archivo.status_code == ACEPTADO:
+        lista_de_cinemas = verificar_archivo.json()
+
+        for informacion_cinemas in lista_de_cinemas:
+            if informacion_cinemas['location'] == dict_menu['location']:
+                return informacion_cinemas['available_seats'] 
+            
+
+def saber_asientos_comprados_de_cada_pelicula()->dict:
+    
+    ruta_ingresos:str = 'ingresos.txt'
     informacion_asientos_comprados:dict = {}
-    
+
     if path.exists(ruta_ingresos):
         with open(ruta_ingresos, 'r') as archivo_ingesos:
             for linea in archivo_ingesos:
@@ -555,7 +608,10 @@ def saber_asientos_comprados()->dict:
     return informacion_asientos_comprados
 
 
-def asientos_comprados_sala(dict_menu:dict, dict_del_txt:dict)->int:
+def asientos_comprados_en_la_sala(dict_menu:dict, dict_del_txt:dict)->int:
+
+    letra_español:str = 'Ñ'
+    conversion_de_letra:str = 'NI'
 
     location = dict_menu['location']
     name = dict_menu['name']
@@ -569,17 +625,18 @@ def asientos_comprados_sala(dict_menu:dict, dict_del_txt:dict)->int:
     else:
         return 0
 
+
 def obtener_asientos_disponibles(dict_menu:dict)->int:
 
     asientos_totales:int = obtener_cantidad_asientos(dict_menu)
-    dict_del_txt:dict = saber_asientos_comprados()
-    asientos_reservados:int = asientos_comprados_sala(dict_menu, dict_del_txt)
+    dict_del_txt:dict = saber_asientos_comprados_de_cada_pelicula()
+    asientos_reservados:int = asientos_comprados_en_la_sala(dict_menu, dict_del_txt)
+    asientos_disponibles:int = asientos_totales - asientos_reservados
 
-    return asientos_totales - asientos_reservados
+    return asientos_disponibles
 
-#-----------------------------------------------------------PANTALLA_SECUNDARIA-------------------------------------------------------------------#
 
-def ventana_informacion_pelicula(dict_menu : dict , ventana_principal)->None:
+def ventana_informacion_pelicula(dict_menu : dict , ventana_principal):
 
     asientos_disponibles_en_la_sala:int = obtener_asientos_disponibles(dict_menu)
 
@@ -600,13 +657,14 @@ def ventana_informacion_pelicula(dict_menu : dict , ventana_principal)->None:
     genero(ventana_secundaria, guardar)
     actores(ventana_secundaria, guardar)
     duracion(ventana_secundaria,guardar)
+
     ventana_secundaria.mainloop()
 
-    return ventana_secundaria
 
-#-------------------------------------------------------------OBTENCION_PELICULA_CINE-------------------------------------------------------------#
+#-----------------------------------------------------FUNCIONES_PARA_LA_VENTANA_PRINCIPAL-----------------------------------------------------------#
 
-def boton_peliculas(sub_id : int,ventana,id_cine,nombre_cine) -> None:
+
+def boton_peliculas(sub_id:int, ventana, id_cine, nombre_cine) -> None:
 
     url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + str(sub_id)
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
@@ -614,36 +672,33 @@ def boton_peliculas(sub_id : int,ventana,id_cine,nombre_cine) -> None:
     headers = {'Authorization': f'Bearer {token}'} #llave de acceso
     informacion_de_movies = get(url, headers=headers)
 
-    if informacion_de_movies.status_code == 200:
+    if informacion_de_movies.status_code == ACEPTADO:
         
         archivo = informacion_de_movies.json() #diccionario
         id = archivo["id"]
         nombre = archivo["name"]
         diccionario : dict = {"name": nombre, "id": id , "cinema_id": id_cine, "location": nombre_cine}
-        print(diccionario)
         ventana_informacion_pelicula(diccionario,ventana)
     
-#--------------------------------------------------------------------POSTERS----------------------------------------------------------------------#
 
-def lista_posters(sub_lista : str)-> str:
+def lista_posters(sub_lista:str)-> str:
 
     url = "http://vps-3701198-x.dattaweb.com:4000/posters/" + str(sub_lista)
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
 
-    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+    headers = {'Authorization': f'Bearer {token}'}
     verificar_archivo = get(url, headers=headers)
 
-    if verificar_archivo.status_code == 200:
-        datos = verificar_archivo.json() #diccionario
+    if verificar_archivo.status_code == ACEPTADO:
+        datos = verificar_archivo.json()
        
         for i in datos:
             variable = datos[i]
 
             return variable
     
-#--------------------------------------------------------------------ID_DE_PELICULAS--------------------------------------------------------------#
 
-def lista_peliculas(id : str)-> list:
+def lista_peliculas(id:str)-> list:
 
     sub_lista : list = []
     
@@ -653,20 +708,36 @@ def lista_peliculas(id : str)-> list:
     headers = {'Authorization': f'Bearer {token}'} #llave de acceso
     verificar_archivo = get(url, headers=headers)
 
-    if verificar_archivo.status_code == 200:
+    if verificar_archivo.status_code == ACEPTADO:
         datos = verificar_archivo.json() #diccionario
         
         for i in datos:
             variable = i["has_movies"]
             sub_lista += variable
 
-    print(sub_lista)
-
     return sub_lista
 
-#---------------------------------------------------------------BUSCAR_PELICULAS------------------------------------------------------------------#
 
-def buscar(cajon, ventana, sub_lista_de_peliculas,id_cinema,nombre_locacion) -> None:
+def mensaje_no_se_encontro_pelicula()->None:
+
+    sub_ventana = Toplevel()
+    sub_ventana.geometry("300x200")
+    sub_ventana.title("ERROR !!!")
+
+    sub_frame = Frame(sub_ventana,bg="black")
+    sub_frame.pack(expand=True,fill="both")
+
+    mensaje = Label(sub_frame, text="NO SE ENCONTRO LA PELICULA. INTENTE DE NUEVO",
+                    bg="black", fg="red")
+    mensaje.pack(ipadx=50,ipady=50)
+
+    sub_boton = Button(sub_frame, text = "OK",
+                        command=sub_ventana.destroy, 
+                        bg="black",fg="red")
+    sub_boton.pack(ipadx=25,ipady=10)
+
+
+def buscar(cajon, ventana, sub_lista_de_peliculas, id_cinema, nombre_locacion) -> None:
 
     datos = cajon.get().upper()
 
@@ -680,8 +751,7 @@ def buscar(cajon, ventana, sub_lista_de_peliculas,id_cinema,nombre_locacion) -> 
         headers = {'Authorization': f'Bearer {token}'} #llave de acceso
         verificar_archivo = get(url, headers=headers)
 
-        if verificar_archivo.status_code == 200:
-
+        if verificar_archivo.status_code == ACEPTADO:
             archivo = verificar_archivo.json()
             lista_de_peliculas.append(archivo["name"])
             lista_completa.append(archivo) 
@@ -689,47 +759,22 @@ def buscar(cajon, ventana, sub_lista_de_peliculas,id_cinema,nombre_locacion) -> 
     if datos in lista_de_peliculas:
 
         for sub_vueltas in lista_completa:
-
             if datos == sub_vueltas["name"]:
-
                 id = sub_vueltas["id"]
                 diccionario : dict = {"name" : datos ,"id" : id , "cinema_id": id_cinema,"location": nombre_locacion}
-
-                print(diccionario)
                 ventana_informacion_pelicula(diccionario,ventana)
 
     else:
-        sub_ventana = Toplevel()
-        sub_ventana.geometry("300x200")
-        sub_ventana.title("ERROR !!!")
+        mensaje_no_se_encontro_pelicula()
 
-        sub_frame = Frame(sub_ventana,bg="black")
-        sub_frame.pack(expand=True,fill="both")
-
-        mensaje = Label(
-                         sub_frame, text="NO SE ENCONTRO LA PELICULA. INTENTE DE NUEVO",
-                         bg="black",fg="red"
-                        )
-        mensaje.pack(ipadx=50,ipady=50)
-
-        sub_boton = Button(
-                            sub_frame, text = "OK",
-                            command=sub_ventana.destroy, 
-                            bg="black",fg="red"
-                          )
-        sub_boton.pack(ipadx=25,ipady=10)
-
-#-----------------------------------------------------------BOTON_SELECCION_PELICULA--------------------------------------------------------------#
 
 def crear_boton_pelicula(numero_id,nombre_cine,sub_frame, imagen, pelicula_info, ventana, row, column) -> None:
 
-    boton_pelicula = Button(
-                              sub_frame, image=imagen, bg="black",
-                              command=lambda info=pelicula_info:  boton_peliculas(info, ventana,numero_id,nombre_cine)
-                            )
+    boton_pelicula = Button(sub_frame, image=imagen, bg="black",
+                            command=lambda info=pelicula_info:  
+                            boton_peliculas(info, ventana,numero_id,nombre_cine))
     boton_pelicula.grid(row=row, column=column)
 
-#-----------------------------------------------------------BASE64_POSTERS------------------------------------------------------------------------#
 
 def cargar_imagen_pelicula(pelicula_info):
 
@@ -740,7 +785,6 @@ def cargar_imagen_pelicula(pelicula_info):
 
     return imagen_capturada_pelicula  
 
-#--------------------------------------------------------------SCROLLBAR_VENTANA_PRINCIPAL--------------------------------------------------------#
 
 def configurar_frame_canvas_scrollbar(ventana:None, side:str)-> tuple:
 
@@ -765,7 +809,6 @@ def configurar_frame_canvas_scrollbar(ventana:None, side:str)-> tuple:
 
     return sub_frame
 
-#--------------------------------------------------------------VISUALIZAR_POSTER------------------------------------------------------------------#
 
 def ejecucion_boton_pelicula(listas_de_peliculas, ventana,cine_numero,nombre_cine):
 
@@ -774,26 +817,30 @@ def ejecucion_boton_pelicula(listas_de_peliculas, ventana,cine_numero,nombre_cin
     
     lista_imagenes: list = []
 
-    corte : int = len(listas_de_peliculas) // 2
+    corte:int = 5
 
-    for i in range(len(listas_de_peliculas)):
-        pelicula_info = listas_de_peliculas[i]
+    for pelicula in range(len(listas_de_peliculas)):
+        pelicula_info = listas_de_peliculas[pelicula]
         
         imagen_pelicula = cargar_imagen_pelicula(pelicula_info)
         lista_imagenes.append(imagen_pelicula)
-        if i < corte:
+
+        if pelicula <= corte:
             sub_frame = sub_frame_1
         else:
             sub_frame = sub_frame_2
 
-        crear_boton_pelicula(  cine_numero, nombre_cine, sub_frame, 
-                               imagen_pelicula, pelicula_info, ventana,
-                               row=i // 3, column=i % 3
-                            )
+        crear_boton_pelicula(cine_numero, nombre_cine, sub_frame, 
+                             imagen_pelicula, pelicula_info, ventana,
+                             row=pelicula // 3, column=pelicula % 3)
     
     return lista_imagenes
 
-#--------------------------------------------------------------VENTANA_PRINCIPAL------------------------------------------------------------------#
+def volver_elegir_cine(pantalla_actual) -> None:
+
+    pantalla_actual.destroy()
+    menu_cines()
+
 
 def ventana_principal(numero_cine, nombre_cine, ventana_anterior):
     
@@ -811,37 +858,32 @@ def ventana_principal(numero_cine, nombre_cine, ventana_anterior):
 
     listas_de_peliculas: list = lista_peliculas(numero_cine)
 
-    boton_busqueda = Button(
-                             fram_1, text="BUSCAR",
-                             command=lambda: buscar(cajon, ventana, listas_de_peliculas,numero_cine,nombre_cine) ,
-                             bg="black", fg="red"
-                            )
+    boton_busqueda = Button(fram_1, text="BUSCAR",
+                            command=lambda: buscar(cajon, ventana, listas_de_peliculas,numero_cine,nombre_cine),
+                            bg="black", fg="red")
     boton_busqueda.grid(row=0, column=1, padx=270, ipadx=30, ipady=5)
 
-    ubicacion = Label(
-                        fram_1, text=f"CINE : {nombre_cine}",
-                        bg="black", fg="red"
-                     )
-    ubicacion.grid(row=0, column=2, padx=100, ipadx=30, ipady=5)
+    ubicacion = Button(fram_1, text=f"CINE : {nombre_cine}", command=lambda: volver_elegir_cine(ventana), 
+                        bg="black", fg="red")
+    ubicacion.grid(row=0, column=2, padx=50, ipadx=30, ipady=5)
 
-    imagen_ejecutable: list = ejecucion_boton_pelicula(listas_de_peliculas, ventana, numero_cine, nombre_cine)
+    imagen_ejecutable:list = ejecucion_boton_pelicula(listas_de_peliculas, ventana, numero_cine, nombre_cine)
 
     ventana.mainloop()
 
-#----------------------------------------------------------BOTONES_ELEGIR_CINES-------------------------------------------------------------------#
+
+#-------------------------------------------------------FUNCIONES_PARA_LA_VENTANA_DE_ELEGIR_CINE-----------------------------------------------------#
+
 
 def crear_boton_cines(frame, cine_id, nombre_cine, ventana) -> None:
 
-    boton_1 = Button(
-                        frame, text=nombre_cine, 
-                        command=lambda : ventana_principal(cine_id,nombre_cine,ventana),
-                        bg="black",fg="red"
-                    ) 
-    boton_1.pack(ipadx=20,ipady=5,pady=5)
+    boton_1 = Button(frame, text=nombre_cine, 
+                    command=lambda : ventana_principal(cine_id,nombre_cine,ventana),
+                    bg="black", fg="blue", width=30, height=3) 
+    boton_1.pack(pady=5)
 
-#-------------------------------------------------------------OBTENER_CINES-----------------------------------------------------------------------#
 
-def cinemas()->tuple:
+def cinemas() -> tuple[str]:
 
     lista_id:list = []
     nombre_cine:list = []
@@ -852,7 +894,7 @@ def cinemas()->tuple:
     headers = {'Authorization': f'Bearer {token}'} #llave de acceso
     response__1 = get(url, headers=headers)
 
-    if response__1.status_code == 200:
+    if response__1.status_code == ACEPTADO:
         datos = response__1.json() #diccionario
 
         for i in datos:
@@ -861,107 +903,31 @@ def cinemas()->tuple:
 
     return lista_id , nombre_cine
 
-#------------------------------------------------------------VENTANA_ELEGIR_CINE------------------------------------------------------------------#
 
-def ventana0():
+def menu_cines() -> Tk:
 
     ventana = Tk()
-    ventana.geometry("600x400")
+    ventana.geometry("230x460")
     ventana.title("MENU")
 
     frame = Frame(ventana, bg="black")
     frame.pack(expand=True, fill="both")
 
-    cine_id,nombre_cine = cinemas()
-    numero : int = 0
+    cine_id, nombre_cine = cinemas()
+    numero:int=0
 
     for vueltas in range(len(cine_id)):
         crear_boton_cines(frame,cine_id[numero],nombre_cine[numero],ventana)
         numero += 1
-    
+
     ventana.mainloop()
-    
+
+
+
 #----------------------------------------------------------------------APP_QR---------------------------------------------------------------------#
-#--------------------------------------------------------------CREAR_QR_GUARDAR_EN_PDF------------------------------------------------------------#
-def crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado, contador_de_snacks)->str:
-
-    id_qr: str = 'QR_' + str(cantidad_de_archivos + 1)
-    pelicula = dict_menu['name']
-    if letra_español in pelicula:
-        pelicula = pelicula.replace(letra_español, conversion_de_letra)
-    cine = dict_menu['location']
-    entradas: str = boleto_comprado
-    tiempo: str = fecha_y_hora()
-    snacks_comprados:str = ''
-    for snacks in contador_de_snacks:
-        if contador_de_snacks[snacks] > 0:
-            snacks_comprados += f'{snacks}: {str(contador_de_snacks[snacks])}, '
-
-    ontenido_qr:str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
-
-    return id_qr, ontenido_qr
 
 
-def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks) -> None:
-
-    ruta_qr: str = path.join(getcwd(), 'QR')
-
-    if not path.exists(ruta_qr):
-        makedirs(ruta_qr)
-
-    archivos_en_qr: list[str] = listdir(ruta_qr)
-    cantidad_de_archivos: int = len(archivos_en_qr)    
-
-    id_qr: str = 'QR_' + str(cantidad_de_archivos + 1)
-    pelicula = dict_menu['name']
-    if letra_español in pelicula:
-        pelicula = pelicula.replace(letra_español, conversion_de_letra)
-    cine = dict_menu['location']
-    entradas: str = boleto_comprado
-    tiempo: str = fecha_y_hora()
-    snacks_comprados:str = ''
-    for snacks in contador_de_snacks:
-        if contador_de_snacks[snacks] > 0:
-            snacks_comprados += f'{snacks}: {str(contador_de_snacks[snacks])}, '
-
-    contenido_qr:str = f'{id_qr}, {pelicula}, {cine}, {entradas}, [{snacks_comprados}], {tiempo}'
-
-    if ', ]' in contenido_qr:
-        contenido_qr = contenido_qr.replace(', ]', ']')
-    elif '[]' in contenido_qr:
-        contenido_qr = contenido_qr.replace('[]', 'sin snacks')
-        
-    print(contenido_qr)
-    ruta_imagen_qr: str = path.join(ruta_qr, f'{id_qr}.png')
-    ruta_pdf: str = path.join(ruta_qr, f'{id_qr}.pdf')
-
-    imagen = make(contenido_qr)
-    imagen.save(ruta_imagen_qr)
-
-    archivo_pdf = canvas.Canvas(ruta_pdf, pagesize=letter)
-
-    archivo_pdf.drawInlineImage(ruta_imagen_qr, 100, 500, width=300, height=300)
-
-    archivo_pdf.save()
-
-    remove(ruta_imagen_qr)
-
-    # HACER FUNCION: reestablecer_boletos_y_snacks()
-
-    ventana_final.destroy()
-    ventana_principal.deiconify()
-
-#-------------------------------------------------------------FECHA_Y_HORA_QR---------------------------------------------------------------------#
-
-def fecha_y_hora() -> str:
-
-    estructura = localtime()
-
-    return strftime('%Y-%m-%d %H:%M:%S', estructura)
-
-#-------------------------------------------------------------------IMAGEN_DESDE_PDF--------------------------------------------------------------#
-
-def extraer_imagen_desde_pdf(archivo_pdf, ruta_imagen_png) -> bool:
+def extraer_imagen_desde_pdf(archivo_pdf:str, ruta_imagen_png:str) -> bool:
 
     try:
         with fitz.open(archivo_pdf) as pdf_doc:
@@ -972,40 +938,34 @@ def extraer_imagen_desde_pdf(archivo_pdf, ruta_imagen_png) -> bool:
                 imagen.save(ruta_imagen_png)
 
         print(f"Imagen extraída del PDF y guardada en {ruta_imagen_png}")
+
         return True
 
     except Exception as error:
         print(f"Error al extraer la imagen del PDF: {str(error)}")
+
         return False
+    
 
-#---------------------------------------------------------------DECODIFICANDO_QR_DESDE_IMAGEN-----------------------------------------------------#
+def decodificar_qr_desde_imagen(ruta_imagen:str) -> str:
 
-def decodificar_qr_desde_imagen(ruta_imagen):
-    #Se modifico porque al usar decode (pyzbar) tiraba error porque no reconocia la libreria
-    #Lee la imagen 
     imagen = imread(ruta_imagen)
-    #Pasa la imagen a escala de grises para detectar mejor
     imagen_gris = cvtColor(imagen, COLOR_BGR2GRAY)
     detector = QRCodeDetector()
-    #Decodifica el qr
     datos_qr = detector.detectAndDecode(imagen_gris)
+    print(datos_qr)
 
-    if datos_qr:
-        # Devuelve el valor del qr
-        return datos_qr[0]
-    else:
-        return None
+    return datos_qr[0]
 
-#-----------------------------------------------------------AGREGAR/VERIFICAR_QR_EN_TXT-----------------------------------------------------------#
 
-def agregar_a_ingresos_txt(codigo_qr):
-    # Verificar si el código QR ya está en ingresos.txt
+def agregar_a_ingresos_txt(codigo_qr) -> None:
+
     with open("ingresos.txt", "a") as archivo_ingresos:
         archivo_ingresos.write(f'{codigo_qr}\n')
 
-#--------------------------------------------------------------------QR_PDF-----------------------------------------------------------------------#
-def generar_ventana_emergente(mensaje : int) -> None:
-    """Se creo para no repetir codigo"""
+
+def generar_ventana_emergente(mensaje:int) -> Tk:
+
     ventana_error = Toplevel()
     ventana_error.geometry("300x200")
     ventana_error.title("ERROR !!!")
@@ -1021,36 +981,26 @@ def generar_ventana_emergente(mensaje : int) -> None:
     boton_error.config(bg="black", fg="red")
     boton_error.pack(ipadx=25, ipady=10)
 
-def codigo(cajon, ventana, carpeta_pdf):
+
+def codigo_por_texto(cajon:Entry, carpeta_pdf) -> None:
+
+    ruta_ingresos:str = 'ingresos.txt'
     dato_entrada = cajon.get().upper()
-    #print(f"Ingresaste: {dato_entrada}")
 
     archivo_pdf = f"{dato_entrada}.pdf"
     ruta_completa_pdf = path.join(carpeta_pdf, archivo_pdf)
 
     if path.exists(ruta_completa_pdf):
-        #print(f"El archivo {archivo_pdf} existe.")
-
-        # Ruta para guardar la imagen extraída
         ruta_imagen_png = path.join(carpeta_pdf, f'{dato_entrada}.png')
 
-        # Obtener el contenido del PDF como imagen PNG
         if extraer_imagen_desde_pdf(ruta_completa_pdf, ruta_imagen_png):
-            #print(f"Imagen extraída correctamente del PDF {archivo_pdf}")
-
-            # Decodificar el código QR desde la imagen
             codigo_qr = decodificar_qr_desde_imagen(ruta_imagen_png)
-            
-            # Se abre en a+ para que si no existe un archivo lo cree y para que lea antes de agregar 
-            with open("ingresos.txt", "a+") as archivo_lectura:
-                # Por defecto la posicion al entrar es al final, con seek lee todo desde el principio
+
+            with open(ruta_ingresos, "a+") as archivo_lectura:
                 archivo_lectura.seek(0)
                 contenido_actual = archivo_lectura.read()
 
             if codigo_qr is not None:
-                #print(f"Código QR extraído: {codigo_qr}")
-                
-                # Entra si no hay una linea igual
                 if codigo_qr not in contenido_actual:
                     agregar_a_ingresos_txt(codigo_qr)
                     mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
@@ -1059,83 +1009,73 @@ def codigo(cajon, ventana, carpeta_pdf):
                 else:
                     mensaje = "CÓDIGO YA REGISTRADO"
                     generar_ventana_emergente(mensaje)
+
             else:
                 mensaje = "No se encontró código QR en la imagen."
                 generar_ventana_emergente(mensaje)
+
         else:
             mensaje = f"No se pudo extraer la imagen del PDF {archivo_pdf}"
             generar_ventana_emergente(mensaje)
 
-    # Intenta encontrar la imagen para borrarla, si el pdf no existe no declara la variable
     try:
         if path.exists(ruta_imagen_png):
-            # Eliminar la imagen PNG después de leer el código QR
             remove(ruta_imagen_png)
 
     except UnboundLocalError:
         mensaje = "NOMBRE QR NO EXISTE"
         generar_ventana_emergente(mensaje)
-    # No cerrar la ventana de Tkinter
 
-#------------------------------------------------------------------LECTURA_QR---------------------------------------------------------------------#
+def guardar_informacion_QR_en_ingresos(dato_qr)->None:
 
-def lector_qr():
-    #abre la camara
+    ruta_ingresos:str = 'ingresos.txt'
+
+    with open(ruta_ingresos, "a+") as archivo_lectura:
+        archivo_lectura.seek(0)
+        contenido_actual = archivo_lectura.read()
+
+        if dato_qr not in contenido_actual:
+            with open(ruta_ingresos, "a") as archivo:
+                archivo.write(dato_qr + '\n')
+            mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
+            generar_ventana_emergente(mensaje)
+
+        elif dato_qr in contenido_actual:
+            mensaje = "CÓDIGO YA REGIDSTRAO"
+            generar_ventana_emergente(mensaje)
+
+        else:
+            mensaje = "CÓDIGO INVALIDO"
+            generar_ventana_emergente(mensaje)
+
+def lector_qr() -> None:
+
     camara = VideoCapture(0)
     ciclo = True
     dato_qr = ""
 
     while ciclo:
-        #lee la imagen que capture, ret es un booleano que da True cuando se recibe un frame
-        # y frame da la imagen recibida
         ret, frame = camara.read()
 
-        #la camara se desactiva y se cierra con la letra s
         if waitKey(1) & 0xFF == ord("s"):
             ciclo = False
 
-        #detector de qr
         detector = QRCodeDetector()
-        #detectAndDecode recibe el frame y devuelve: 
-        # data= contenido del qr en una cadena, si no detecta qr devuelve cadena vacia 
-        # bbox= devuelve las coordenadas de los bordes del codigo qr 
-        # rectifiedImage= devuelve cadena el contenido del qr con sus correcciones de errores
         data, bbox, rectifiedImage = detector.detectAndDecode(frame)
 
-        if len(data) > 0: #si se detecta un qr
-            #"web" crea la ventana
-            #"rectifiedImage" muestra los datos del qr
+        if len(data) > 0:
             imshow("web", rectifiedImage)
             dato_qr = data
-            #rompe el ciclo cuando recibe un qr
             ciclo = False
+
         else:
-            #si no encuentra qr muestra el frame
             imshow("web", frame)
 
-    #cierra la videocamara
     camara.release()
-    #cierra todas las ventanas
     destroyAllWindows()
 
-    
-    with open("ingresos.txt", "a+") as archivo_lectura:
-        archivo_lectura.seek(0)
-        contenido_actual = archivo_lectura.read()
+    guardar_informacion_QR_en_ingresos(dato_qr)
 
-    if dato_qr not in contenido_actual:
-        with open("ingresos.txt", "a") as archivo:
-            archivo.write(dato_qr + '\n')
-        mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
-        generar_ventana_emergente(mensaje)
-
-    elif dato_qr in contenido_actual:
-        mensaje = "CÓDIGO YA REGIDSTRAO"
-        generar_ventana_emergente(mensaje)
-
-    else:
-        mensaje = "CÓDIGO INVALIDO"
-        generar_ventana_emergente(mensaje)
 
 def menu_QR():
     ventana = Tk()
@@ -1152,15 +1092,13 @@ def menu_QR():
     cajon = Entry(frame_principal)
     cajon.pack(pady=20, ipadx=50)
 
-    boton_1 = Button(frame_principal, text="LEER QR POR TEXTO", command=lambda: codigo(cajon, ventana, "QR"))
+    boton_1 = Button(frame_principal, text="LEER QR POR TEXTO", command=lambda: codigo_por_texto(cajon, "QR"))
     boton_1.config(bg="black", fg="red")
     boton_1.pack(pady=20, ipadx=50, ipady=5)
 
     boton_2 = Button(frame_principal, text="LEER QR", command=lambda: lector_qr(ventana))
     boton_2.config(bg="black", fg="red")
     boton_2.pack(pady=20, ipadx=50, ipady=5)
-
-
 
 #------------------------------------------------------------MENU/OPCION-------------------------------------------------------------------------#
 
@@ -1185,7 +1123,7 @@ def main():
         respuesta: str = menu()
 
         if respuesta == '1':
-            ventana0()
+            menu_cines()
         elif respuesta == '2':
             menu_QR()
         elif respuesta == '3':
