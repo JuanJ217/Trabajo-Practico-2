@@ -1089,13 +1089,12 @@ def guardar_informacion_QR_en_ingresos(dato_qr:str)->None:
         contenido_actual = archivo_lectura.read()
 
     if dato_qr not in contenido_actual:
-        with open(ruta_ingresos, "a") as archivo:
-            archivo.write(dato_qr + '\n')
+        agregar_a_ingresos_txt(dato_qr)
         mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
         generar_ventana_emergente(mensaje)
 
     elif dato_qr in contenido_actual:
-        mensaje = "CÓDIGO YA REGIDSTRAO"
+        mensaje = "CÓDIGO YA REGISTRADO"
         generar_ventana_emergente(mensaje)
 
     else:
