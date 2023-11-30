@@ -541,19 +541,20 @@ def no_hay_lugar():
 def saber_asientos_comprados()->dict:
     
     informacion_asientos_comprados:dict = {}
-
-    with open(ruta_ingresos, 'r') as archivo_ingesos:
-        for linea in archivo_ingesos:
-            datos = linea.strip('\n').split(', ')
-            cinema = datos[2]
-            pelicula = datos[1]
-            entradas_vendidas = int(datos[3])
-            if cinema not in informacion_asientos_comprados:
-                informacion_asientos_comprados[cinema] = {}
-            if pelicula in informacion_asientos_comprados[cinema]:
-                informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
-            else:
-                informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
+    
+    if path.exists(ruta_ingresos):
+        with open(ruta_ingresos, 'r') as archivo_ingesos:
+            for linea in archivo_ingesos:
+                datos = linea.strip('\n').split(', ')
+                cinema = datos[2]
+                pelicula = datos[1]
+                entradas_vendidas = int(datos[3])
+                if cinema not in informacion_asientos_comprados:
+                    informacion_asientos_comprados[cinema] = {}
+                if pelicula in informacion_asientos_comprados[cinema]:
+                    informacion_asientos_comprados[cinema][pelicula] += entradas_vendidas
+                else:
+                    informacion_asientos_comprados[cinema][pelicula] = entradas_vendidas
 
     return informacion_asientos_comprados
 
