@@ -16,6 +16,10 @@ NO_HAY_SNACK_COMPRADO:int = 0
 NO_HAY_ASIENTOS_DISPONIBLES:int = 0
 INICIAL:int = 4
 FINAL:int = 8
+AUMENTAR_EN_UNO:int = 1
+NOMBRE_CINEMA:int = 2
+NOMBRE_PELICULA:int = 1
+CANT_ENTRADAS_VENDIDAS:int = 3
 
 
 #------------------------------------------------FUNCIONES_PARA_LA_VENTANA_DEL_CARRITO_PAGAR-----------------------------------------------------------------------------
@@ -27,12 +31,12 @@ def fecha_y_hora() -> str:
     return strftime('%Y-%m-%d %H:%M:%S', estructura)
 
 
-def crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado, contador_de_snacks)->str:
+def crear_cadena_informacion_QR(cantidad_de_archivos:int, dict_menu:dict, boleto_comprado:str, contador_de_snacks:dict)->str:
 
     letra_español:str = 'Ñ'
     conversion_de_letra:str = 'NI'
 
-    id_qr:str = 'QR_' + str(cantidad_de_archivos + 1)
+    id_qr:str = 'QR_' + str(cantidad_de_archivos + AUMENTAR_EN_UNO)
     pelicula:str = dict_menu['name']
     if letra_español in pelicula:
         pelicula = pelicula.replace(letra_español, conversion_de_letra)
@@ -54,7 +58,7 @@ def crear_cadena_informacion_QR(cantidad_de_archivos, dict_menu, boleto_comprado
     return id_qr, contenido_qr
 
 
-def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_principal, contador_de_snacks) -> None:
+def crear_qr(boleto_comprado:str, dict_menu:dict, ventana_final, ventana_principal, contador_de_snacks:dict) -> None:
 
     ruta_qr: str = path.join(getcwd(), 'QR')
 
@@ -83,7 +87,7 @@ def crear_qr(boleto_comprado, dict_menu, ventana_final, ventana3, ventana_princi
     ventana_principal.deiconify()
 
 
-def precio_por_snack(nombre_snack, cantidad_snack:dict, precio_snack:dict, lista_final:list[int])-> str:
+def precio_por_snack(nombre_snack, cantidad_snack:dict, precio_snack:dict, lista_final:list[int]) -> str:
 
     precio_final = cantidad_snack[nombre_snack] * float(precio_snack[nombre_snack])
     lista_final.append(precio_final)
@@ -105,40 +109,33 @@ def snacks_comprados(contador_de_snacks:dict, ventana_final, informacion_snacks:
         
         if contador_de_snacks[nombre_snacks] > NO_HAY_SNACK_COMPRADO:
             
-            snacks_seleccionados = Label(
-                                            cantidades, text=f'{contador_de_snacks[nombre_snacks]} {nombre_snacks}',
-                                            font=20,    width=25, fg='orange', bg='black'
-                                        )
+            snacks_seleccionados = Label(cantidades, font=20, width=25, fg='orange', bg='black', 
+                                         text=f'{contador_de_snacks[nombre_snacks]} {nombre_snacks}')
             snacks_seleccionados.pack(side='left')
           
-            precio_snacks_seleccionados = Label(
-                                                    cantidades, text= precio_por_snack(nombre_snacks, contador_de_snacks,
-                                                                                       informacion_snacks, lista_final),
-                                                    font=20, fg='green', bg='black'
-                                                )
+            precio_snacks_seleccionados = Label(cantidades, font=20, fg='green', bg='black', 
+                                                text= precio_por_snack(nombre_snacks, contador_de_snacks,
+                                                                                       informacion_snacks, lista_final))
             precio_snacks_seleccionados.pack(side='left')
 
-def boletos_comprados(ventana_final, cant_boletos_comprados)-> None:
+
+def boletos_comprados(ventana_final, cant_boletos_comprados:str) -> None:
 
     tickets = Frame(ventana_final,bg='black')
     tickets.pack(side='top', anchor='w')
   
-    cantidad_boletos = Label(
-                                tickets, text=f'{cant_boletos_comprados} Entradas', 
-                                font=20, width=25, 
-                                fg='orange', bg='black'
-                            )
+    cantidad_boletos = Label(tickets, text=f'{cant_boletos_comprados} Entradas', 
+                             font=20, width=25, 
+                             fg='orange', bg='black')
     cantidad_boletos.pack(side='left',  anchor='w')
 
-    precio_boletos_seleccionados = Label(
-                                            tickets, text=precio_boletos(cant_boletos_comprados),
-                                            font=20, fg='green', 
-                                            bg='black'
-                                        )
+    precio_boletos_seleccionados = Label(tickets, text=precio_boletos(cant_boletos_comprados),
+                                         font=20, fg='green', 
+                                         bg='black')
     precio_boletos_seleccionados.pack(side='left')
 
 
-def precio_final(lista_final:list[int], cantidad_entradas:str)-> str:
+def precio_final(lista_final:list[int], cantidad_entradas:str) -> str:
 
     boletos: float = float(precio_boletos(cantidad_entradas))
     total: int = 0
@@ -149,25 +146,21 @@ def precio_final(lista_final:list[int], cantidad_entradas:str)-> str:
     return str(total+boletos)
 
 
-def mostrar_precio_total(ventana_final, lista_final, boleto_comprado)-> None:
+def mostrar_precio_total(ventana_final, lista_final:list[int], boleto_comprado:str) -> None:
 
     linea_final = Frame(ventana_final, bg='black')
     linea_final.pack(side='top', anchor='w', pady=15)
 
-    palabra_total = Label(
-                            linea_final, text='TOTAL',
-                            font=20,     width=25, 
-                            fg='red',    bg='black'
-                        )
+    palabra_total = Label(linea_final, text='TOTAL',
+                          font=20,     width=25, 
+                          fg='red',    bg='black')
     palabra_total.pack(side='left', anchor='w')
 
-    precio_total = Label(
-                            linea_final, text=precio_final(lista_final, boleto_comprado),
-                            fg='green',  bg='black', font=20
-                        )
+    precio_total = Label(linea_final, text=precio_final(lista_final, boleto_comprado),
+                         fg='green',  bg='black', font=20)
     precio_total.pack(side='left')
 
-def mostrar_encabezados(ventana_final, dict_menu)->None:
+def mostrar_encabezados(ventana_final, dict_menu:dict) -> None:
 
     name = 'name'
     encabezado = Label(
@@ -180,15 +173,15 @@ def mostrar_encabezados(ventana_final, dict_menu)->None:
     nombre_pelicula.pack(pady=10)
 
 
-def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, dict_menu, 
-                            ventana3, contador_de_snacks)->None:
+def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas:str, dict_menu:dict, 
+                            ventana3, contador_de_snacks:dict) -> None:
 
     botones_de_accion = Frame(ventana_final, bg='black')
     botones_de_accion.pack(side='top', anchor='center', pady=10)
     
     boton_pagar = Button(botones_de_accion, text='PAGAR', fg='blue', 
                          command=lambda: crear_qr(cantidad_entradas, dict_menu, ventana_final, 
-                                                  ventana3, ventana_principal, contador_de_snacks))
+                                                  ventana_principal, contador_de_snacks))
     boton_pagar.pack(side='top', anchor='n', pady=10)
 
     boton_cancelar_compra = Button(botones_de_accion, text='CANCELAR', fg='red', 
@@ -196,22 +189,22 @@ def botones_pantalla_final(ventana_final, ventana_principal, cantidad_entradas, 
     boton_cancelar_compra.pack(side='bottom', anchor='center', pady=10) 
 
 
-def advertencia_no_boletos_comprados(ventana_anterior):
+def advertencia_no_boletos_comprados(ventana_anterior) -> None:
 
     ventana_anterior.withdraw()
     messagebox.showwarning('Advertencia', 'No hay boletos seleccionados')
     ventana_anterior.deiconify()
     
 
-def advertencia_asientos_excedidos(ventana_anterior, asientos_disponibles_en_la_sala):
+def advertencia_asientos_excedidos(ventana_anterior, asientos_disponibles_en_la_sala:int) -> None:
 
     ventana_anterior.withdraw()
     messagebox.showwarning('Advertencia', f'No puedes comprar más de {asientos_disponibles_en_la_sala} asientos')
     ventana_anterior.deiconify()
 
 
-def ejecucion_ventana_confirmar_compra(ventana_anterior, dict_menu, contador_de_snacks, informacion_snacks, 
-                                       lista_final, cantidad_entradas, ventana_principal):
+def ejecucion_ventana_confirmar_compra(ventana_anterior, dict_menu:dict, contador_de_snacks:dict, informacion_snacks:dict, 
+                                       lista_final:list[int], cantidad_entradas:str, ventana_principal) -> None:
 
     ventana_anterior.withdraw()
 
@@ -230,9 +223,8 @@ def ejecucion_ventana_confirmar_compra(ventana_anterior, dict_menu, contador_de_
 
 
 
-def confirmar_compra( informacion_snacks, contador_de_snacks, asientos_disponibles_en_la_sala,
-                              lista_final, ventana3,
-                              dict_menu, eleccion_entradas, ventana_principal)-> None:
+def confirmar_compra(informacion_snacks:dict, contador_de_snacks:dict, asientos_disponibles_en_la_sala:int,
+                     lista_final:list[int], ventana3, dict_menu:dict, eleccion_entradas:str, ventana_principal) -> None:
     
     cantidad_entradas = eleccion_entradas.get()
 
@@ -261,7 +253,7 @@ def obtener_snacks()-> dict:
 
     return diccionario_snacks #Retorna una diccionario ya traducido de Json
 
-def cantidad_de_snacks(informacion_snacks:dict, contador_de_snacks:dict)-> None:
+def cantidad_de_snacks(informacion_snacks:dict, contador_de_snacks:dict) -> None:
 
     for snack in informacion_snacks:
         contador_de_snacks[snack]=0
@@ -283,13 +275,13 @@ def cancelar_compra(ventana_anterior, ventana_actual) -> None:
     ventana_anterior.deiconify()
 
 
-def aumentar_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
+def aumentar_snacks(snack:str, contador_de_snacks:dict, cantidad_visible:str) -> None:
 
     contador_de_snacks[snack]+=1
     cantidad_visible.config(text=f'{snack}: {contador_de_snacks[snack]}')
 
 
-def disminuir_snacks(snack, contador_de_snacks:dict, cantidad_visible:str) -> None:
+def disminuir_snacks(snack:str, contador_de_snacks:dict, cantidad_visible:str) -> None:
 
     if contador_de_snacks[snack]>0:
         contador_de_snacks[snack]-=1
@@ -302,30 +294,24 @@ def cerrar_ventana(ventana, ventana_reserva)-> None:
     ventana_reserva.deiconify()
 
 
-def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks:dict, cantidad_visible:str, ventana_reserva)->None:
+def botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks:dict, cantidad_visible:str, ventana_reserva) -> None:
 
-    aceptar = Button(
-                     ventana3, text='Aceptar', 
+    aceptar = Button(ventana3, text='Aceptar', 
                      command=lambda: cerrar_ventana(ventana3, ventana_reserva),
-                     fg='blue', font=15
-                    )
+                     fg='blue', font=15)
     aceptar.pack()
     aceptar.place(x=120, y=220)
    
-    cancelar = Button(
-                      ventana3, text='Cancelar compra', 
+    cancelar = Button(ventana3, text='Cancelar compra', 
                       command=lambda: reiniciar_snacks(contador_de_snacks, ventana3, cantidad_visible, ventana_reserva),
-                      fg='red', font=15
-                     )
+                      fg='red', font=15)
     cancelar.pack()
     cancelar.place(x=90, y=250)
  
-def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, ventana_reserva, ventana_snacks)->None:
+def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, ventana_reserva, ventana_snacks) -> None:
 
-    encabezado = Label(
-                        ventana_snacks, text='COMPRAR SNACKS',
-                        fg='white', bg='black'
-                      )
+    encabezado = Label(ventana_snacks, text='COMPRAR SNACKS',
+                        fg='white', bg='black')
     encabezado.pack(side='top')
 
     for snack in informacion_snacks:
@@ -333,10 +319,8 @@ def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, v
         posiciones = Frame(ventana3,bg='black')
         posiciones.pack(side='top', anchor='w')
 
-        cantidad_visible = Label(
-                                 posiciones, text=f'{snack}: {contador_de_snacks[snack]}',
-                                 width=15, fg='white', bg='black', font=15
-                                 )
+        cantidad_visible = Label(posiciones, text=f'{snack}: {contador_de_snacks[snack]}',
+                                 width=15, fg='white', bg='black', font=15)
         cantidad_visible.pack(side='left', 
                               anchor='w')
 
@@ -356,16 +340,18 @@ def botones_snacks(ventana3, informacion_snacks:dict, contador_de_snacks:dict, v
     botones_aceptar_cancelar_snacks(ventana3, contador_de_snacks, cantidad_visible, ventana_reserva)
 
 
-def presentar_cant_entradas(asientos_disponibles_en_la_sala)->str:
+def presentar_cant_entradas(asientos_disponibles_en_la_sala:int) -> str:
+
     return f'''Hay {asientos_disponibles_en_la_sala} asientos disponibles
 Cantidad de entradas a comprar:'''
 
 
-def validar_texto(nuevo_valor:str)->bool:
+def validar_texto(nuevo_valor:str) -> bool:
+
     return nuevo_valor.isdigit() or nuevo_valor == ''
 
 
-def mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala:int)->None:
+def mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala:int) -> None:
 
     comprar_entradas = Label(ventana_reserva, text='SECCION DE RESERVAS', fg='white', bg='black', font=15)
     comprar_entradas.pack(pady=5)
@@ -375,7 +361,7 @@ def mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibl
     mostrar_cant_asientos.pack()
 
 
-def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict, ventana_reserva)-> None:
+def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict, ventana_reserva) -> None:
 
     ventana_reserva.withdraw()
 
@@ -390,7 +376,7 @@ def ventana_de_snacks(contador_de_snacks:dict, informacion_snacks:dict, ventana_
 
 
 def ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_snacks:dict, informacion_snacks:dict, lista_final:list[int],
-                     asientos_disponibles_en_la_sala:str, dict_menu:dict, ventana2)->None:
+                             asientos_disponibles_en_la_sala:str, dict_menu:dict, ventana2) -> None:
     
     validar_ingreso = (ventana_reserva.register(validar_texto), '%P')
     eleccion_entradas = Entry(ventana_reserva, width=5, validate="key", validatecommand=validar_ingreso, font=15)
@@ -404,9 +390,9 @@ def ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_sna
 
     terminar_compra = Button(ventana_reserva, text='Ir a Carrito', 
                             command=lambda: confirmar_compra(informacion_snacks, contador_de_snacks,
-                                                                     asientos_disponibles_en_la_sala, lista_final, 
-                                                                     ventana_reserva, dict_menu, eleccion_entradas, 
-                                                                     ventana_principal),
+                                                             asientos_disponibles_en_la_sala, lista_final, 
+                                                             ventana_reserva, dict_menu, eleccion_entradas, 
+                                                             ventana_principal),
                             fg='blue', bg='black', font=15)
     terminar_compra.pack(pady=5)
 
@@ -414,47 +400,48 @@ def ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_sna
                       command=lambda: cancelar_compra(ventana2, ventana_reserva), 
                       fg='red', bg='black', font=15)
     cancelar.pack(pady=5)
+
     
-def advertencia_sin_asientos(ventana_anterior)->None:
+def advertencia_sin_asientos(ventana_anterior) -> None:
 
     ventana_anterior.withdraw()
     messagebox.showwarning('Advertencia', 'Ya no hay asientos disponibles')
     ventana_anterior.deiconify()
 
 
-def ejecutar_ventana_de_reservas(ventana_anterior, asientos_disponibles_en_la_sala:int, dict_menu:dict)->None:
+def ejecutar_ventana_de_reservas(ventana_anterior, asientos_disponibles_en_la_sala:int, dict_menu:dict, ventana_principal) -> None:
         
-        ventana_anterior.withdraw()
+    ventana_anterior.withdraw()
 
-        lista_final: list =[]
-        informacion_snacks: dict = obtener_snacks()
-        contador_de_snacks: dict = {}
-        cantidad_de_snacks(informacion_snacks, contador_de_snacks)
+    lista_final: list =[]
+    informacion_snacks: dict = obtener_snacks()
+    contador_de_snacks: dict = {}
+    cantidad_de_snacks(informacion_snacks, contador_de_snacks)
 
-        ventana_reserva = Toplevel()
-        ventana_reserva.geometry('300x250')
-        ventana_reserva.title('')
-        ventana_reserva.resizable(width=False, height=False)
-        ventana_reserva.config(bg='black')
+    ventana_reserva = Toplevel()
+    ventana_reserva.geometry('300x250')
+    ventana_reserva.title('')
+    ventana_reserva.resizable(width=False, height=False)
+    ventana_reserva.config(bg='black')
 
-        mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala)
-        ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_snacks, informacion_snacks, lista_final,
-                         asientos_disponibles_en_la_sala, dict_menu, ventana_anterior)
+    mostrar_cantidad_de_asientos_disponibles(ventana_reserva, asientos_disponibles_en_la_sala)
+    ingresar_texto_y_botones(ventana_reserva, ventana_principal, contador_de_snacks, informacion_snacks, lista_final,
+                        asientos_disponibles_en_la_sala, dict_menu, ventana_anterior)
         
 
-def ventana_de_reservas(ventana2, dict_menu:dict, asientos_disponibles_en_la_sala:str, ventana_principal)-> None:
+def ventana_de_reservas(ventana2, dict_menu:dict, asientos_disponibles_en_la_sala:str, ventana_principal) -> None:
 
     if asientos_disponibles_en_la_sala == NO_HAY_ASIENTOS_DISPONIBLES:
         advertencia_sin_asientos(ventana2)
 
     else:
-        ejecutar_ventana_de_reservas(ventana2, asientos_disponibles_en_la_sala, dict_menu)
+        ejecutar_ventana_de_reservas(ventana2, asientos_disponibles_en_la_sala, dict_menu, ventana_principal)
 
 
 #-------------------------------------FUNCIONES_PARA_LA_VENTANA_QUE_MUESTRA_LA_INFORMACION_DE_LA_PELICULA_SELECCIONADA------------------------------------------
 
 
-def api_ventana_secundaria(id_principal)->tuple:
+def api_ventana_secundaria(id_principal) -> tuple:
 
     guardar: list = []
 
@@ -465,18 +452,18 @@ def api_ventana_secundaria(id_principal)->tuple:
     verificar_archivo = get(url, headers=headers)
 
     if verificar_archivo.status_code == ACEPTADO:
-        x = verificar_archivo.json() #diccionario
+        diccionario_informacion = verificar_archivo.json()
 
-    informacion = list(x.keys())
+    informacion = list(diccionario_informacion.keys())
 
-    for i in range(INICIAL, FINAL): 
-        variable = x[informacion[i]] 
-        guardar.append(variable)   # guardo la informacion que necesito de la pelicula
+    for linea in range(INICIAL, FINAL): 
+        variable = diccionario_informacion[informacion[linea]] 
+        guardar.append(variable)
 
     return id_principal, guardar
 
 
-def volver_al_menu(ventana_secundaria,ventana_principal) -> None:
+def volver_al_menu(ventana_secundaria, ventana_principal) -> None:
 
     ventana_principal.iconify()
     ventana_principal.deiconify()
@@ -495,24 +482,21 @@ def botones(ventana_secundaria, ventana_principal, dict_menu:dict, asientos_disp
         POST CONDICION: al clickear el boton se abrira la ventana de reservar
     '''
 
-    boton_volver_al_menu = Button(
-                                    ventana_secundaria,  text= "VOLVER AL MENU", 
-                                    background= "black",  fg="gold", 
-                                    width= 20,           height= 5, 
-                                    command= lambda: volver_al_menu(ventana_secundaria,ventana_principal)
-                                  )
+    boton_volver_al_menu = Button(ventana_secundaria,  text= "VOLVER AL MENU", 
+                                 background= "black",  fg="gold", 
+                                 width= 20,           height= 5, 
+                                 command= lambda: volver_al_menu(ventana_secundaria,ventana_principal))
     boton_volver_al_menu.place(relx=0.1, rely=0.1, anchor=CENTER)
 
-    boton_reservar = Button(
-                                ventana_secundaria,  text= "RESERVAR", 
-                                background= "black",  fg="gold",  
-                                width= 20,          height= 5,
-                                command= lambda: ventana_de_reservas(ventana_secundaria, dict_menu, asientos_disponibles_en_la_sala, ventana_principal)
-                            )
+    boton_reservar = Button(ventana_secundaria,  text= "RESERVAR", 
+                            background= "black",  fg="gold",  
+                            width= 20,          height= 5,
+                            command= lambda: ventana_de_reservas(ventana_secundaria, dict_menu, 
+                                                                 asientos_disponibles_en_la_sala, ventana_principal))
     boton_reservar.place(relx=0.88, rely=0.9, anchor=CENTER)
 
 
-def sala(ventana_secundaria, id) -> None:
+def sala(ventana_secundaria, id:str) -> None:
 
     sala_proyectar = Label(
                             ventana_secundaria,   text= "SALA  " + id,
@@ -521,23 +505,19 @@ def sala(ventana_secundaria, id) -> None:
     sala_proyectar.place(relx=0.5, rely=0.1, anchor=CENTER)
 
 
-def sinopsis(ventana_secundaria, guardar) -> None: 
+def sinopsis(ventana_secundaria, guardar:list[str]) -> None: 
 
-    sinopsis = Label(
-                        ventana_secundaria, text= "SINOPSIS: ",
-                        background= "black", fg="red"  
-                    )
+    sinopsis = Label(ventana_secundaria, text= "SINOPSIS: ",
+                     background= "black", fg="red")
     sinopsis.place(relx=0.2, rely=0.3, anchor=CENTER)
 
-    texto_sinopsis = Label(
-                            ventana_secundaria,   text= guardar[0],
-                            background= "black",  fg="red",    
-                            wraplength= 700
-                          )
+    texto_sinopsis = Label(ventana_secundaria,   text= guardar[0],
+                           background= "black",  fg="red",    
+                           wraplength= 700)
     texto_sinopsis.place(relx=0.5, rely=0.42, anchor=CENTER)
 
 
-def genero(ventana_secundaria, guardar)->None:
+def genero(ventana_secundaria, guardar:list[str]) -> None:
 
     genero = Label(ventana_secundaria,    text= "GENERO: ",
                    background= "black",   fg="red")
@@ -548,7 +528,7 @@ def genero(ventana_secundaria, guardar)->None:
     texto_genero.place(relx=0.25, rely=0.55, anchor=CENTER)
     
 
-def actores(ventana_secundaria, guardar) -> None:
+def actores(ventana_secundaria, guardar:list[str]) -> None:
 
     actores = Label(ventana_secundaria, text= "ACTORES: ",
                     background= "black", fg="red")
@@ -559,7 +539,7 @@ def actores(ventana_secundaria, guardar) -> None:
     texto_actores.place(relx=0.35, rely=0.66, anchor=CENTER)
 
 
-def duracion(ventana_secundaria, guardar) -> None:
+def duracion(ventana_secundaria, guardar:list[str]) -> None:
 
     duracion = Label(ventana_secundaria, text= "DURACION: ",
                     background= "black", fg="red")
@@ -570,7 +550,7 @@ def duracion(ventana_secundaria, guardar) -> None:
     texto_duracion.place(relx=0.25, rely=0.6, anchor=CENTER)
 
 
-def obtener_cantidad_asientos(dict_menu:dict)->int:
+def obtener_cantidad_asientos(dict_menu:dict) -> int:
     
     url = "http://vps-3701198-x.dattaweb.com:4000/cinemas"
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
@@ -586,7 +566,7 @@ def obtener_cantidad_asientos(dict_menu:dict)->int:
                 return informacion_cinemas['available_seats'] 
             
 
-def saber_asientos_comprados_de_cada_pelicula()->dict:
+def saber_asientos_comprados_de_cada_pelicula() -> dict:
     
     ruta_ingresos:str = 'ingresos.txt'
     informacion_asientos_comprados:dict = {}
@@ -595,9 +575,9 @@ def saber_asientos_comprados_de_cada_pelicula()->dict:
         with open(ruta_ingresos, 'r') as archivo_ingesos:
             for linea in archivo_ingesos:
                 datos = linea.strip('\n').split(', ')
-                cinema = datos[2]
-                pelicula = datos[1]
-                entradas_vendidas = int(datos[3])
+                cinema = datos[NOMBRE_CINEMA]
+                pelicula = datos[NOMBRE_PELICULA]
+                entradas_vendidas = int(datos[CANT_ENTRADAS_VENDIDAS])
                 if cinema not in informacion_asientos_comprados:
                     informacion_asientos_comprados[cinema] = {}
                 if pelicula in informacion_asientos_comprados[cinema]:
@@ -608,7 +588,7 @@ def saber_asientos_comprados_de_cada_pelicula()->dict:
     return informacion_asientos_comprados
 
 
-def asientos_comprados_en_la_sala(dict_menu:dict, dict_del_txt:dict)->int:
+def asientos_comprados_en_la_sala(dict_menu:dict, dict_del_txt:dict) -> int:
 
     letra_español:str = 'Ñ'
     conversion_de_letra:str = 'NI'
@@ -626,7 +606,7 @@ def asientos_comprados_en_la_sala(dict_menu:dict, dict_del_txt:dict)->int:
         return 0
 
 
-def obtener_asientos_disponibles(dict_menu:dict)->int:
+def obtener_asientos_disponibles(dict_menu:dict) -> int:
 
     asientos_totales:int = obtener_cantidad_asientos(dict_menu)
     dict_del_txt:dict = saber_asientos_comprados_de_cada_pelicula()
@@ -636,7 +616,7 @@ def obtener_asientos_disponibles(dict_menu:dict)->int:
     return asientos_disponibles
 
 
-def ventana_informacion_pelicula(dict_menu : dict , ventana_principal):
+def ventana_informacion_pelicula(dict_menu:dict , ventana_principal) -> None:
 
     asientos_disponibles_en_la_sala:int = obtener_asientos_disponibles(dict_menu)
 
@@ -669,19 +649,19 @@ def boton_peliculas(sub_id:int, ventana, id_cine, nombre_cine) -> None:
     url = "http://vps-3701198-x.dattaweb.com:4000/movies/" + str(sub_id)
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
 
-    headers = {'Authorization': f'Bearer {token}'} #llave de acceso
+    headers = {'Authorization': f'Bearer {token}'}
     informacion_de_movies = get(url, headers=headers)
 
     if informacion_de_movies.status_code == ACEPTADO:
         
-        archivo = informacion_de_movies.json() #diccionario
+        archivo = informacion_de_movies.json() 
         id = archivo["id"]
         nombre = archivo["name"]
         diccionario : dict = {"name": nombre, "id": id , "cinema_id": id_cine, "location": nombre_cine}
         ventana_informacion_pelicula(diccionario,ventana)
     
 
-def lista_posters(sub_lista:str)-> str:
+def lista_posters(sub_lista:str) -> str:
 
     url = "http://vps-3701198-x.dattaweb.com:4000/posters/" + str(sub_lista)
     token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.DGI_v9bwNm_kSrC-CQSb3dBFzxOlrtBDHcEGXvCFqgU"
@@ -698,7 +678,7 @@ def lista_posters(sub_lista:str)-> str:
             return variable
     
 
-def lista_peliculas(id:str)-> list:
+def lista_peliculas(id:str) -> list:
 
     sub_lista : list = []
     
@@ -718,7 +698,7 @@ def lista_peliculas(id:str)-> list:
     return sub_lista
 
 
-def mensaje_no_se_encontro_pelicula()->None:
+def mensaje_no_se_encontro_pelicula() -> None:
 
     sub_ventana = Toplevel()
     sub_ventana.geometry("300x200")
@@ -737,7 +717,7 @@ def mensaje_no_se_encontro_pelicula()->None:
     sub_boton.pack(ipadx=25,ipady=10)
 
 
-def buscar(cajon, ventana, sub_lista_de_peliculas, id_cinema, nombre_locacion) -> None:
+def buscar(cajon, ventana, sub_lista_de_peliculas:list, id_cinema:str, nombre_locacion:str) -> None:
 
     datos = cajon.get().upper()
 
@@ -768,7 +748,8 @@ def buscar(cajon, ventana, sub_lista_de_peliculas, id_cinema, nombre_locacion) -
         mensaje_no_se_encontro_pelicula()
 
 
-def crear_boton_pelicula(numero_id,nombre_cine,sub_frame, imagen, pelicula_info, ventana, row, column) -> None:
+def crear_boton_pelicula(numero_id:str, nombre_cine:str, sub_frame, imagen, 
+                         pelicula_info:str, ventana, row:int, column:int) -> None:
 
     boton_pelicula = Button(sub_frame, image=imagen, bg="black",
                             command=lambda info=pelicula_info:  
@@ -776,7 +757,7 @@ def crear_boton_pelicula(numero_id,nombre_cine,sub_frame, imagen, pelicula_info,
     boton_pelicula.grid(row=row, column=column)
 
 
-def cargar_imagen_pelicula(pelicula_info):
+def cargar_imagen_pelicula(pelicula_info:str) -> str:
 
     funcion_pelicula: str = lista_posters(pelicula_info) 
     base64_data_pelicula: str = funcion_pelicula.split(",")[1]  
@@ -786,13 +767,11 @@ def cargar_imagen_pelicula(pelicula_info):
     return imagen_capturada_pelicula  
 
 
-def configurar_frame_canvas_scrollbar(ventana:None, side:str)-> tuple:
+def configurar_frame_canvas_scrollbar(ventana, side:str)-> tuple:
 
-    frame = Frame(
-                   ventana,     bg="black",
-                   height=1000, width=600,
-                   relief="raised", bd=25
-                 )
+    frame = Frame(ventana,     bg="black",
+                  height=1000, width=600,
+                  relief="raised", bd=25)
     frame.pack(side=side, fill="both", expand=True)
 
     canvas = Canvas(frame, bg="black")
@@ -810,7 +789,7 @@ def configurar_frame_canvas_scrollbar(ventana:None, side:str)-> tuple:
     return sub_frame
 
 
-def ejecucion_boton_pelicula(listas_de_peliculas, ventana,cine_numero,nombre_cine):
+def ejecucion_boton_pelicula(listas_de_peliculas:list[str], ventana, cine_numero:str, nombre_cine:str) -> list[str]:
 
     sub_frame_1: tuple = configurar_frame_canvas_scrollbar(ventana, "left")
     sub_frame_2: tuple = configurar_frame_canvas_scrollbar(ventana, "right")
@@ -842,7 +821,7 @@ def volver_elegir_cine(pantalla_actual) -> None:
     menu_cines()
 
 
-def ventana_principal(numero_cine, nombre_cine, ventana_anterior):
+def ventana_principal(numero_cine:str, nombre_cine:str, ventana_anterior) -> None:
     
     ventana_anterior.destroy()
 
@@ -875,7 +854,7 @@ def ventana_principal(numero_cine, nombre_cine, ventana_anterior):
 #-------------------------------------------------------FUNCIONES_PARA_LA_VENTANA_DE_ELEGIR_CINE-----------------------------------------------------#
 
 
-def crear_boton_cines(frame, cine_id, nombre_cine, ventana) -> None:
+def crear_boton_cines(frame, cine_id:str, nombre_cine:str, ventana) -> None:
 
     boton_1 = Button(frame, text=nombre_cine, 
                     command=lambda : ventana_principal(cine_id,nombre_cine,ventana),
@@ -904,7 +883,7 @@ def cinemas() -> tuple[str]:
     return lista_id , nombre_cine
 
 
-def menu_cines() -> Tk:
+def menu_cines() -> None:
 
     ventana = Tk()
     ventana.geometry("230x460")
@@ -958,13 +937,13 @@ def decodificar_qr_desde_imagen(ruta_imagen:str) -> str:
     return datos_qr[0]
 
 
-def agregar_a_ingresos_txt(codigo_qr) -> None:
+def agregar_a_ingresos_txt(codigo_qr:str) -> None:
 
     with open("ingresos.txt", "a") as archivo_ingresos:
         archivo_ingresos.write(f'{codigo_qr}\n')
 
 
-def generar_ventana_emergente(mensaje:int) -> Tk:
+def generar_ventana_emergente(mensaje:int) -> None:
 
     ventana_error = Toplevel()
     ventana_error.geometry("300x200")
@@ -982,7 +961,9 @@ def generar_ventana_emergente(mensaje:int) -> Tk:
     boton_error.pack(ipadx=25, ipady=10)
 
 
-def codigo_por_texto(cajon:Entry, carpeta_pdf) -> None:
+def codigo_por_texto(cajon) -> None:
+
+    carpeta_pdf:str = 'QR'
 
     ruta_ingresos:str = 'ingresos.txt'
     dato_entrada = cajon.get().upper()
@@ -1026,7 +1007,7 @@ def codigo_por_texto(cajon:Entry, carpeta_pdf) -> None:
         mensaje = "NOMBRE QR NO EXISTE"
         generar_ventana_emergente(mensaje)
 
-def guardar_informacion_QR_en_ingresos(dato_qr)->None:
+def guardar_informacion_QR_en_ingresos(dato_qr:str)->None:
 
     ruta_ingresos:str = 'ingresos.txt'
 
@@ -1092,11 +1073,11 @@ def menu_QR():
     cajon = Entry(frame_principal)
     cajon.pack(pady=20, ipadx=50)
 
-    boton_1 = Button(frame_principal, text="LEER QR POR TEXTO", command=lambda: codigo_por_texto(cajon, "QR"))
+    boton_1 = Button(frame_principal, text="LEER QR POR TEXTO", command=lambda: codigo_por_texto(cajon))
     boton_1.config(bg="black", fg="red")
     boton_1.pack(pady=20, ipadx=50, ipady=5)
 
-    boton_2 = Button(frame_principal, text="LEER QR", command=lambda: lector_qr(ventana))
+    boton_2 = Button(frame_principal, text="LEER QR", command=lambda: lector_qr())
     boton_2.config(bg="black", fg="red")
     boton_2.pack(pady=20, ipadx=50, ipady=5)
 
