@@ -45,20 +45,7 @@ def ajustar_cadena(contenido_qr:str) -> str:
     
     return contenido_qr
 
-
-def crear_cadena_informacion_QR(cantidad_de_archivos:int, dict_menu:dict, boleto_comprado:str, 
-                                contador_de_snacks:dict, ruta_qr:list[str])->str:
-    
-    '''
-    PRE-CONDICION: CREARÁ LA CADENA (INFORMACION) Y LE NOMBRE DEL PDF TENIENDO EN CUENTA LA 
-                   CANTIDAD DE ARCHIVOS QUE HAYA DENTRO DE LA CARPETA 'QR'. VALIDANDO QUE SI SE ELIMINAR
-                   ALGÚN PDF, NO SE OBTENDRÁ UN CÓÐIGO REPETIDO
-    POST-CONDICION: ALMACENARÁ LOS ARCHIVOS PDF DENTRO DE LA CARPETA 'QR', LA CUAL USAREMOS PARA
-                    EXTRAER LA INFORMACION DEL QR Y PASARLA AL ARCHIVO 'INGRESOS.TXT'
-    ''' 
-
-    letra_español:str = 'Ñ'
-    conversion_de_letra:str = 'NI'
+def validar_si_hay_codigo_eliminado(cantidad_de_archivos:str, ruta_qr:str) -> str:
 
     valor_numerico_codigo:int = (cantidad_de_archivos + AUMENTAR_EN_UNO)
     id_qr:str = 'QR_' + str(valor_numerico_codigo)
@@ -68,11 +55,23 @@ def crear_cadena_informacion_QR(cantidad_de_archivos:int, dict_menu:dict, boleto
             valor_numerico_codigo += AUMENTAR_EN_UNO
             id_qr:str = 'QR_' + str(valor_numerico_codigo)
             codigo_qr:str = id_qr + '.pdf'
+    
+    return id_qr
 
 
+def crear_cadena_informacion_QR(cantidad_de_archivos:int, dict_menu:dict, boleto_comprado:str, 
+                                contador_de_snacks:dict, ruta_qr:list[str])->str:
+    
+    '''
+    PRE-CONDICION: CREARÁ LA CADENA (INFORMACION) Y LE NOMBRE DEL PDF TENIENDO EN CUENTA LA 
+                   CANTIDAD DE ARCHIVOS QUE HAYA DENTRO DE LA CARPETA 'QR'. VALIDANDO QUE SI SE ELIMINAR
+                   ALGÚN PDF, NO SE OBTENDRÁ UN CÓÐIGO REPETIDO (PREFERIBLE NO ELIMINAR NINGÚN ARCHIVO)
+    POST-CONDICION: ALMACENARÁ LOS ARCHIVOS PDF DENTRO DE LA CARPETA 'QR', LA CUAL USAREMOS PARA
+                    EXTRAER LA INFORMACION DEL QR Y PASARLA AL ARCHIVO 'INGRESOS.TXT'
+    ''' 
+
+    id_qr:str = validar_si_hay_codigo_eliminado(cantidad_de_archivos, ruta_qr)
     pelicula:str = dict_menu['name']
-    if letra_español in pelicula:
-        pelicula = pelicula.replace(letra_español, conversion_de_letra)
     cine = dict_menu['location']
     entradas:str = boleto_comprado
     tiempo:str = fecha_y_hora()
@@ -599,7 +598,7 @@ def saber_asientos_comprados_de_cada_pelicula() -> dict:
     informacion_asientos_comprados:dict = {}
 
     if path.exists(ruta_ingresos):
-        with open(ruta_ingresos, 'r') as archivo_ingesos:
+        with open(ruta_ingresos, 'r', encoding="UTF-8") as archivo_ingesos:
             for linea in archivo_ingesos:
                 datos = linea.strip('\n').split(', ')
                 cinema = datos[NOMBRE_CINEMA]
@@ -617,14 +616,8 @@ def saber_asientos_comprados_de_cada_pelicula() -> dict:
 
 def asientos_comprados_en_la_sala(dict_menu:dict, dict_del_txt:dict) -> int:
 
-    letra_español:str = 'Ñ'
-    conversion_de_letra:str = 'NI'
-
     location = dict_menu['location']
     name = dict_menu['name']
-
-    if letra_español in name:
-        name = name.replace(letra_español, conversion_de_letra)
     
     if location in dict_del_txt and name in dict_del_txt[location]:
         return dict_del_txt[location][name]
@@ -1001,7 +994,7 @@ def decodificar_qr_desde_imagen(ruta_imagen:str) -> str:
 
 def agregar_a_ingresos_txt(codigo_qr:str) -> None:
 
-    with open("ingresos.txt", "a") as archivo_ingresos:
+    with open("ingresos.txt", "a", encoding="UTF-8") as archivo_ingresos:
         archivo_ingresos.write(f'{codigo_qr}\n')
 
 
@@ -1031,8 +1024,8 @@ def codigo_por_texto(cajon) -> None:
     '''
 
     carpeta_pdf:str = 'QR'
-
     ruta_ingresos:str = 'ingresos.txt'
+
     dato_entrada = cajon.get().upper()
 
     archivo_pdf = f"{dato_entrada}.pdf"
@@ -1044,7 +1037,7 @@ def codigo_por_texto(cajon) -> None:
         if extraer_imagen_desde_pdf(ruta_completa_pdf, ruta_imagen_png):
             codigo_qr = decodificar_qr_desde_imagen(ruta_imagen_png)
 
-            with open(ruta_ingresos, "a+") as archivo_lectura:
+            with open(ruta_ingresos, "a+", encoding="UTF-8") as archivo_lectura:
                 archivo_lectura.seek(0)
                 contenido_actual = archivo_lectura.read()
 
@@ -1071,7 +1064,7 @@ def codigo_por_texto(cajon) -> None:
             remove(ruta_imagen_png)
 
     except UnboundLocalError:
-        mensaje = "NO EXISTE LA CARPETA 'QR'"
+        mensaje = "NO SE ENCUENTRA EL ARCHIVO/CARPETA"
         generar_ventana_emergente(mensaje)
 
 
@@ -1084,22 +1077,22 @@ def guardar_informacion_QR_en_ingresos(dato_qr:str)->None:
 
     ruta_ingresos:str = 'ingresos.txt'
 
-    with open(ruta_ingresos, "a+") as archivo_lectura:
+    with open(ruta_ingresos, "a+", encoding="UTF-8") as archivo_lectura:
         archivo_lectura.seek(0)
         contenido_actual = archivo_lectura.read()
 
-    if dato_qr not in contenido_actual:
-        agregar_a_ingresos_txt(dato_qr)
-        mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
-        generar_ventana_emergente(mensaje)
+        if dato_qr not in contenido_actual:
+            agregar_a_ingresos_txt(dato_qr)
+            mensaje = "SE REGISTRO CORRECTAMENTE EL QR"
+            generar_ventana_emergente(mensaje)
 
-    elif dato_qr in contenido_actual:
-        mensaje = "CÓDIGO YA REGISTRADO"
-        generar_ventana_emergente(mensaje)
+        elif dato_qr in contenido_actual:
+            mensaje = "CÓDIGO YA REGISTRADO"
+            generar_ventana_emergente(mensaje)
 
-    else:
-        mensaje = "CÓDIGO INVALIDO"
-        generar_ventana_emergente(mensaje)
+        else:
+            mensaje = "CÓDIGO INVALIDO"
+            generar_ventana_emergente(mensaje)
 
 
 def lector_qr() -> None:
